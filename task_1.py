@@ -13,7 +13,18 @@ def register_cars(clean_plates, status="in repair"):
       my_garage[plat] = status
       
    return my_garage
+
+def release_car(garage_db, plate_number):
+   if plate_number in garage_db:
+      del garage_db[plate_number]
+      print("The car has been successfully issued")
+      return garage_db
+      
+   print(f"The car plate_number {plate_number} was not found")
+   return garage_db
    
 plates = ["  aa1234bb ", "invalid_plate", "XX9999XX", " a b c ", "kH0mycH1"]
 cleaned_data = clean_plates(plates)
-print(register_cars(cleaned_data))
+garage_db = register_cars(cleaned_data)
+print(garage_db)
+print(release_car(garage_db, 'KH0MYCH1'))
