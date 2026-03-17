@@ -31,8 +31,12 @@ while True:
    action = input("Enter the command: ").lower()
    if action == 'return the car':
       plate_num = input("Enter your license plate number: ").upper()
-      if plate_num in garage_db:
-         release_car(garage_db, plate_num)
-         break
+      garage_db = release_car(garage_db, plate_num)
+   
+   elif action == 'exit':
+      break
+   
+   else:
+      print("Unknown command. Try again.")
          
 print(garage_db)
