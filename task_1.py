@@ -10,7 +10,7 @@ def clean_plates(plates):
    return result
 
 def register_cars(clean_plates, status="in repair"):
-   my_garage = {}
+   my_garage = load_garage()
    for plat in clean_plates:
       my_garage[plat] = status
       
@@ -38,19 +38,23 @@ def load_garage(filename='garage.json'):
    except FileNotFoundError:
       return {}
 
-garage_db = load_garage()
+garage = load_garage()
 
 while True:
    action = input("Enter the command: ").lower()
-   if action == 'return the car':
-      plate_num = input("Enter your license plate number: ").upper()
-      garage_db = release_car(garage_db, plate_num)
-      save_garage(garage_db)
-   
-   elif action == 'exit':
+   if action == 'exit':
       break
    
-   else:
-      print("Unknown command. Try again.")
-         
+   if action == "return the car":
+      plate_num = input("Enter your license plate number: ").upper()
+      garage = release_car(garage, plate_num)
+      save_garage(garage)
+   
+   if action == "register cars":
+      plate_num = input("Enter your license plate number: ").upper()
+      clean = clean_plates(plate_num)
+      garage = register_cars(clean)
+      save_garage(garage)
+   
+print("Unknown command. Try again.")         
 print(load_garage())
