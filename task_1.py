@@ -1,3 +1,5 @@
+import json
+
 def clean_plates(plates):
    result = []
    for plate in plates:
@@ -22,6 +24,10 @@ def release_car(garage_db, plate_number):
       
    print(f"The car plate_number {plate_number} was not found")
    return garage_db
+
+def save_garage(data, filename='garage.json'):
+      with open(filename, 'w', encoding='utf-8') as f:
+         json.dump(data, f, indent=4, ensure_ascii=False)
 
 plates = ["  aa1234bb ", "invalid_plate", "XX9999XX", " a b c ", "kH0mycH1"]
 cleaned_data = clean_plates(plates)
