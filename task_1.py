@@ -38,15 +38,14 @@ def load_garage(filename='garage.json'):
    except FileNotFoundError:
       return {}
 
-plates = ["  aa1234bb ", "invalid_plate", "XX9999XX", " a b c ", "kH0mycH1"]
-cleaned_data = clean_plates(plates)
-garage_db = register_cars(cleaned_data)
+garage_db = load_garage()
 
 while True:
    action = input("Enter the command: ").lower()
    if action == 'return the car':
       plate_num = input("Enter your license plate number: ").upper()
       garage_db = release_car(garage_db, plate_num)
+      save_garage(garage_db)
    
    elif action == 'exit':
       break
