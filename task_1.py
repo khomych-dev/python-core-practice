@@ -28,6 +28,15 @@ def release_car(garage_db, plate_number):
 def save_garage(data, filename='garage.json'):
       with open(filename, 'w', encoding='utf-8') as f:
          json.dump(data, f, indent=4, ensure_ascii=False)
+         
+def load_garage(filename='garage.json'):
+   try:
+      with open(filename, 'r', encoding='utf-8') as f:
+         data = json.load(f)
+         return data
+      
+   except FileNotFoundError:
+      return {}
 
 plates = ["  aa1234bb ", "invalid_plate", "XX9999XX", " a b c ", "kH0mycH1"]
 cleaned_data = clean_plates(plates)
@@ -45,4 +54,4 @@ while True:
    else:
       print("Unknown command. Try again.")
          
-print(garage_db)
+print(load_garage())
