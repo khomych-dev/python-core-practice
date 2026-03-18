@@ -54,6 +54,10 @@ while True:
    if action == "register cars":
       plate_num = input("Enter your license plate number: ").upper()
       clean = clean_plates([plate_num])
+      if clean:
+         print("The car has been successfully registered")
+      else:
+         print("Invalid plate format. Registration failed.")
       garage = register_cars(garage, clean)
       save_garage(garage)
 
