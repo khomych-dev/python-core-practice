@@ -9,12 +9,11 @@ def clean_plates(plates):
          
    return result
 
-def register_cars(clean_plates, status="in repair"):
-   my_garage = load_garage()
+def register_cars(garage_db, clean_plates, status="in repair"):
    for plat in clean_plates:
-      my_garage[plat] = status
+      garage_db[plat] = status
       
-   return my_garage
+   return garage_db
 
 def release_car(garage_db, plate_number):
    if plate_number in garage_db:
@@ -49,12 +48,16 @@ while True:
       plate_num = input("Enter your license plate number: ").upper()
       garage = release_car(garage, plate_num)
       save_garage(garage)
-   
+
+      continue
+      
    if action == "register cars":
       plate_num = input("Enter your license plate number: ").upper()
-      clean = clean_plates(plate_num)
-      garage = register_cars(clean)
+      clean = clean_plates([plate_num])
+      garage = register_cars(garage, clean)
       save_garage(garage)
+
+      continue
    
-print("Unknown command. Try again.")         
-print(load_garage())
+   else:
+      print("Unknown command. Try again.")         
