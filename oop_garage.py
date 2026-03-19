@@ -1,4 +1,3 @@
-from task_1 import save_garage
 import json
 
 class Garage:
@@ -16,7 +15,8 @@ class Garage:
             return {}
     
     def save(self):
-        save_garage(self.db, self.filename)
+      with open(self.filename, 'w', encoding='utf-8') as f:
+         json.dump(self.db, f, indent=4, ensure_ascii=False)
         
     def release_car(self, plate_number):
         if plate_number in self.db:
@@ -44,7 +44,7 @@ class Garage:
 my_garage = Garage()
 
 while True:
-    action = input("Enter the command: ").lower()
+    action = input("\nEnter the command: ").lower()
     
     if action == 'exit':
         break
