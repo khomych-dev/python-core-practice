@@ -55,6 +55,13 @@ while True:
     
     if action == 'exit':
         break
+    
+    if action == 'change status':
+        plate_num = input("Enter your license plate number: ").upper()
+        new_status = input("Enter new status: ")
+        print(my_garage.change_status(plate_num, new_status))
+
+        continue
         
     if action == 'register':
         plate_num = input("Enter your license plate number: ").upper()
