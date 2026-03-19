@@ -18,9 +18,8 @@ class Garage:
         return f"The car plate_number {plate_number} was not found"
     
     def register_car(self, plate_number, status='in repair'):
-        for plate in clean_plates(plate_number):
-            if clean_plates(plate_number):
-                self.db[plate] = status
-                self.save()
-                return f"The car {plate_number} has been successfully issued"
+        for plate in clean_plates([plate_number]):
+            self.db[plate] = status
+            self.save()
+            return f"The car {plate_number} has been successfully registered"
         return "Invalid plate format. Registration failed."
