@@ -23,3 +23,27 @@ class Garage:
             self.save()
             return f"The car {plate_number} has been successfully registered"
         return "Invalid plate format. Registration failed."
+    
+my_garage = Garage()
+
+while True:
+    action = input("Enter the command: ").lower()
+    
+    if action == 'exit':
+        break
+    
+    if action == 'register':
+        plate_num = input("Enter your license plate number: ").upper()
+        
+        print(my_garage.register_car(plate_num))
+
+        continue
+    
+    if action == "return the car":
+        plate_num = input("Enter your license plate number: ").upper()
+        print(my_garage.release_car(plate_num))
+
+        continue
+  
+    else:
+        print("Unknown command. Try again.")
