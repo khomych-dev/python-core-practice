@@ -24,6 +24,15 @@ class Garage:
             return f"The car {plate_number} has been successfully registered"
         return "Invalid plate format. Registration failed."
     
+    def clean_plates(self, plates):
+        result = []
+        for plate in plates:
+            clean_plate = str(plate).upper().strip()
+        if 3 <= len(clean_plate) <= 8:
+            result.append(clean_plate)
+         
+        return result
+    
 my_garage = Garage()
 
 while True:
