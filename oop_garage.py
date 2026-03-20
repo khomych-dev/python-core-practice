@@ -28,11 +28,17 @@ class Garage:
         return f"The car plate_number {plate_number} was not found"
     
     def register_car(self, plate_number, status='in repair'):
-        for plate in self._clean_plates([plate_number]):
-            self.db[plate] = status
-            self.save()
-            return f"The car {plate_number} has been successfully registered"
-        return "Invalid plate format. Registration failed."
+        clean_plates = self._clean_plates([plate_number])
+        if not clean_plates:
+            raise ValueError("Invalid plate format. Registration failed.")
+        
+        plate = clean_plates[0]
+        if plate in self.db:
+            raise ValueError(f"The car {plate} is already registered!")
+        
+        self.db[plate] = status
+        self.save()
+        return f"The car {plate} has been successfully registered"
     
     def _clean_plates(self, plates):
         result = []
@@ -50,9 +56,11 @@ class Garage:
             return f"Status changed to '{new_status}'"
         return f"The car plate_number {plate_number} was not found"
     
-my_garage = Garage()
 
 if __name__ == '__main__':
+    
+    my_garage = Garage()
+    
     while True:
         action = input("\nEnter the command: ").lower()
     
