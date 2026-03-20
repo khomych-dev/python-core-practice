@@ -52,30 +52,31 @@ class Garage:
     
 my_garage = Garage()
 
-while True:
-    action = input("\nEnter the command: ").lower()
+if __name__ == '__main__':
+    while True:
+        action = input("\nEnter the command: ").lower()
     
-    if action == 'exit':
-        break
+        if action == 'exit':
+            break
     
-    if action == 'change status':
-        plate_num = input("Enter your license plate number: ").upper()
-        new_status = input("Enter new status: ")
-        print(my_garage.change_status(plate_num, new_status))
+        if action == 'change status':
+            plate_num = input("Enter your license plate number: ").upper()
+            new_status = input("Enter new status: ")
+            print(my_garage.change_status(plate_num, new_status))
 
-        continue
+            continue
         
-    if action == 'register':
-        plate_num = input("Enter your license plate number: ").upper()
-        print(my_garage.register_car(plate_num))
+        if action == 'register':
+            plate_num = input("Enter your license plate number: ").upper()
+            print(my_garage.register_car(plate_num))
 
-        continue
+            continue
     
-    if action == "return the car":
-        plate_num = input("Enter your license plate number: ").upper()
-        print(my_garage.release_car(plate_num))
+        if action == "return the car":
+            plate_num = input("Enter your license plate number: ").upper()
+            print(my_garage.release_car(plate_num))
 
-        continue
+            continue
   
-    else:
-        print("Unknown command. Try again.")
+        else:
+            print("Unknown command. Try again.")
