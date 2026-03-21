@@ -12,16 +12,10 @@ def temp_garage():
     if os.path.exists(test_file):
         os.remove(test_file)
 
-def test_register_car_success():
-    test_file = "test_test_db.json"
-    garage = Garage(filename=test_file)
+def test_register_car_success(temp_garage):
+    temp_garage.register_car("AA1111BB")
     
-    garage.register_car("AA1111BB")
-    
-    assert "AA1111BB" in garage.db
-    
-    if os.path.exists(test_file):
-        os.remove(test_file)
+    assert "AA1111BB" in temp_garage.db
         
 def test_register_car_duplicate():
     test_file = "test_test_db.json"
@@ -44,3 +38,5 @@ def test_release_car_not_found():
         
     if os.path.exists(test_file):
         os.remove(test_file)
+        
+test_register_car_success(temp_garage())
