@@ -19,13 +19,15 @@ class Garage:
          json.dump(self.db, f, indent=4, ensure_ascii=False)
         
     def release_car(self, plate_number):
-        if plate_number in self.db :
-            if self.db[plate_number] == 'repair completed':
-                del self.db[plate_number]
-                self.save()
-                return f"The vehicle with license plate number {plate_number} has been successfully returned to its owner"
-            return "Cannot release the car. It is still in repair."
-        return f"The car plate_number {plate_number} was not found"
+        if plate_number not in self.db:
+            raise ValueError(f"The car plate_number {plate_number} was not found")
+        
+        elif self.db[plate_number] != 'repair completed':
+            raise ValueError("Cannot release the car. It is still in repair.")
+        
+        del self.db[plate_number]
+        self.save()
+        return f"The vehicle with license plate number {plate_number} has been successfully returned to its owner"
     
     def register_car(self, plate_number, status='in repair'):
         clean_plates = self._clean_plates([plate_number])
