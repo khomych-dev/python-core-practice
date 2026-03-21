@@ -24,3 +24,13 @@ def test_register_car_duplicate():
     if os.path.exists(test_file):
         os.remove(test_file)
     
+def test_release_car_not_found():
+    test_file = "test_test_db.json"
+    garage = Garage(filename=test_file)
+    garage.register_car("AA1111BB")
+    
+    with pytest.raises(ValueError):
+        garage.release_car("SS999H")
+        
+    if os.path.exists(test_file):
+        os.remove(test_file)
