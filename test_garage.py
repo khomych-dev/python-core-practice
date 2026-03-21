@@ -2,6 +2,16 @@ import pytest
 import os
 from oop_garage import Garage
 
+@pytest.fixture
+def temp_garage():
+    test_file = "test_test_db.json"
+    garage = Garage(filename=test_file)
+    
+    yield garage
+    
+    if os.path.exists(test_file):
+        os.remove(test_file)
+
 def test_register_car_success():
     test_file = "test_test_db.json"
     garage = Garage(filename=test_file)
