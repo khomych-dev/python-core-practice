@@ -19,20 +19,28 @@ class Garage:
          json.dump(self.db, f, indent=4, ensure_ascii=False)
         
     def release_car(self, plate_number):
-        if plate_number in self.db :
-            if self.db[plate_number] == 'repair completed':
-                del self.db[plate_number]
-                self.save()
-                return f"The vehicle with license plate number {plate_number} has been successfully returned to its owner"
-            return "Cannot release the car. It is still in repair."
-        return f"The car plate_number {plate_number} was not found"
+        if plate_number not in self.db:
+            raise ValueError(f"The car plate_number {plate_number} was not found")
+        
+        elif self.db[plate_number] != 'repair completed':
+            raise ValueError("Cannot release the car. It is still in repair.")
+        
+        del self.db[plate_number]
+        self.save()
+        return f"The vehicle with license plate number {plate_number} has been successfully returned to its owner"
     
     def register_car(self, plate_number, status='in repair'):
-        for plate in self._clean_plates([plate_number]):
-            self.db[plate] = status
-            self.save()
-            return f"The car {plate_number} has been successfully registered"
-        return "Invalid plate format. Registration failed."
+        clean_plates = self._clean_plates([plate_number])
+        if not clean_plates:
+            raise ValueError("Invalid plate format. Registration failed.")
+        
+        plate = clean_plates[0]
+        if plate in self.db:
+            raise ValueError(f"The car {plate} is already registered!")
+        
+        self.db[plate] = status
+        self.save()
+        return f"The car {plate} has been successfully registered"
     
     def _clean_plates(self, plates):
         result = []
@@ -50,32 +58,35 @@ class Garage:
             return f"Status changed to '{new_status}'"
         return f"The car plate_number {plate_number} was not found"
     
-my_garage = Garage()
 
-while True:
-    action = input("\nEnter the command: ").lower()
+if __name__ == '__main__':
     
-    if action == 'exit':
-        break
+    my_garage = Garage()
     
-    if action == 'change status':
-        plate_num = input("Enter your license plate number: ").upper()
-        new_status = input("Enter new status: ")
-        print(my_garage.change_status(plate_num, new_status))
+    while True:
+        action = input("\nEnter the command: ").lower()
+    
+        if action == 'exit':
+            break
+    
+        if action == 'change status':
+            plate_num = input("Enter your license plate number: ").upper()
+            new_status = input("Enter new status: ")
+            print(my_garage.change_status(plate_num, new_status))
 
-        continue
+            continue
         
-    if action == 'register':
-        plate_num = input("Enter your license plate number: ").upper()
-        print(my_garage.register_car(plate_num))
+        if action == 'register':
+            plate_num = input("Enter your license plate number: ").upper()
+            print(my_garage.register_car(plate_num))
 
-        continue
+            continue
     
-    if action == "return the car":
-        plate_num = input("Enter your license plate number: ").upper()
-        print(my_garage.release_car(plate_num))
+        if action == "return the car":
+            plate_num = input("Enter your license plate number: ").upper()
+            print(my_garage.release_car(plate_num))
 
-        continue
+            continue
   
-    else:
-        print("Unknown command. Try again.")
+        else:
+            print("Unknown command. Try again.")
