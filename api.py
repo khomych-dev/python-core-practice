@@ -21,3 +21,13 @@ def register_new_car(request: CarRegisterRequest):
         
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+@app.delete("/cars/{plate_namber}")
+def release_car_endpoint(plate_number: str):
+    try:
+        result_massage = my_garage.release_car(plate_number)
+        
+        return {'message': result_massage}
+    
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
