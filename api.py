@@ -34,3 +34,13 @@ def release_car_endpoint(plate_number: str):
     
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+@app.patch("/cars/{plate_number}/status")
+def new_status(plate_number: str, request: StatusUpdateRequest):
+    try:
+        result_message = my_garage.change_status(plate_number, request.new_status)
+        
+        return {"message": result_message}
+    
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
