@@ -7,6 +7,9 @@ my_garage = Garage()
 
 class CarRegisterRequest(BaseModel):
     plate_number: str
+    
+class StatusUpdateRequest(BaseModel):
+    new_status: str
 
 @app.get('/')
 def read_root():
@@ -22,12 +25,12 @@ def register_new_car(request: CarRegisterRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     
-@app.delete("/cars/{plate_namber}")
+@app.delete("/cars/{plate_number}")
 def release_car_endpoint(plate_number: str):
     try:
-        result_massage = my_garage.release_car(plate_number)
+        result_message = my_garage.release_car(plate_number)
         
-        return {'message': result_massage}
+        return {'message': result_message}
     
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
