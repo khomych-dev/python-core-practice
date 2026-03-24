@@ -15,6 +15,10 @@ class StatusUpdateRequest(BaseModel):
 def read_root():
     return {"message": "Welcome to the Garage API"}
 
+@app.get("/cars")
+def all_cars():
+    return my_garage.db
+
 @app.post("/cars/register")
 def register_new_car(request: CarRegisterRequest):
     try:
