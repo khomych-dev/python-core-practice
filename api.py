@@ -16,8 +16,9 @@ def read_root():
     return {"message": "Welcome to the Garage API"}
 
 @app.get("/cars")
-def all_cars():
-    return my_garage.db
+async def all_cars():
+    cars_dict = await my_garage.get_all_cars()
+    return cars_dict
 
 @app.post("/cars/register")
 async def register_new_car(request: CarRegisterRequest):
