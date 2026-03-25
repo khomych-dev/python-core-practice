@@ -63,6 +63,14 @@ class Garage:
             return f"Status changed to '{new_status}'"
         return f"The car plate_number {plate_number} was not found"
     
+    async def get_all_cars(self):
+        async with aiosqlite.connect("garage.db") as db:
+            cursor = await db.execute("SELECT * FROM cars")
+            
+            rows = await cursor.fetchall()
+            result_dict = {plate: status for plate, status in rows}
+            
+            return result_dict
 
 if __name__ == '__main__':
     
