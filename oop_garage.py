@@ -1,4 +1,5 @@
 import json
+import aiosqlite
 
 class Garage:
     def __init__(self, filename='garage.json'):
@@ -29,18 +30,22 @@ class Garage:
         self.save()
         return f"The vehicle with license plate number {plate_number} has been successfully returned to its owner"
     
-    def register_car(self, plate_number, status='in repair'):
-        clean_plates = self._clean_plates([plate_number])
-        if not clean_plates:
+    async def register_car(self, plate_number: str):
+        clean_plates_list = self._clean_plates([plate_number])
+        if not clean_plates_list:
             raise ValueError("Invalid plate format. Registration failed.")
         
-        plate = clean_plates[0]
-        if plate in self.db:
-            raise ValueError(f"The car {plate} is already registered!")
-        
-        self.db[plate] = status
-        self.save()
-        return f"The car {plate} has been successfully registered"
+        clean_plate = clean_plates_list[0]
+        async with aiosqlite.connect("garage.db") as db:
+            try:
+                await db.execute(
+                    "INSERT INTO cars(plate_number, status) VALUES (?,?)", ('clean_plate', 'in repair')
+                    )
+                await db.commit()
+                return f"Car {clean_plate} registered successfully in DB!"
+            
+            except aiosqlite.IntegrityError:
+                raise ValueError(f"The car {clean_plate} is already registered!")
     
     def _clean_plates(self, plates):
         result = []
