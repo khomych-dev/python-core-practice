@@ -39,7 +39,7 @@ class Garage:
         async with aiosqlite.connect("garage.db") as db:
             try:
                 await db.execute(
-                    "INSERT INTO cars(plate_number, status) VALUES (?,?)", ('clean_plate', 'in repair')
+                    "INSERT INTO cars(plate_number, status) VALUES (?,?)", (clean_plate, 'in repair')
                     )
                 await db.commit()
                 return f"Car {clean_plate} registered successfully in DB!"
