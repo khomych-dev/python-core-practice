@@ -20,9 +20,9 @@ def all_cars():
     return my_garage.db
 
 @app.post("/cars/register")
-def register_new_car(request: CarRegisterRequest):
+async def register_new_car(request: CarRegisterRequest):
     try:
-        result_message = my_garage.register_car(request.plate_number)
+        result_message = await my_garage.register_car(request.plate_number)
         
         return {"message": result_message}
         
