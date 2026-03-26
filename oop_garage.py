@@ -1,46 +1,48 @@
-import json
+import aiosqlite
 
 class Garage:
     def __init__(self, filename='garage.json'):
         self.filename = filename
-        self.db = self._load_garage()
-
-    def _load_garage(self):
-        try:
-            with open(self.filename, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                return data
-      
-        except FileNotFoundError:
-            return {}
+        
+    async def release_car(self, plate_number):
+        clean_plates_list = self._clean_plates([plate_number])
+        if not clean_plates_list:
+            raise ValueError("Invalid plate format.")
+        
+        clean_plate = clean_plates_list[0]
+        
+        async with aiosqlite.connect("garage.db") as db:
+            cursor = await db.execute("SELECT status FROM cars WHERE plate_number = ?", (clean_plate,))
+            
+            row = await cursor.fetchone()
+            if row is None:
+                raise ValueError(f"The car plate_number {plate_number} was not found")
+        
+            elif row[0] != 'repair completed':
+                raise ValueError("Cannot release the car. It is still in repair.")
+            
+            await db.execute(
+                "DELETE FROM cars WHERE plate_number = ?", (clean_plate,))
+            
+            await db.commit()
+            return f"The vehicle with license plate number {plate_number} has been successfully returned to its owner"
     
-    def save(self):
-      with open(self.filename, 'w', encoding='utf-8') as f:
-         json.dump(self.db, f, indent=4, ensure_ascii=False)
-        
-    def release_car(self, plate_number):
-        if plate_number not in self.db:
-            raise ValueError(f"The car plate_number {plate_number} was not found")
-        
-        elif self.db[plate_number] != 'repair completed':
-            raise ValueError("Cannot release the car. It is still in repair.")
-        
-        del self.db[plate_number]
-        self.save()
-        return f"The vehicle with license plate number {plate_number} has been successfully returned to its owner"
-    
-    def register_car(self, plate_number, status='in repair'):
-        clean_plates = self._clean_plates([plate_number])
-        if not clean_plates:
+    async def register_car(self, plate_number: str):
+        clean_plates_list = self._clean_plates([plate_number])
+        if not clean_plates_list:
             raise ValueError("Invalid plate format. Registration failed.")
         
-        plate = clean_plates[0]
-        if plate in self.db:
-            raise ValueError(f"The car {plate} is already registered!")
-        
-        self.db[plate] = status
-        self.save()
-        return f"The car {plate} has been successfully registered"
+        clean_plate = clean_plates_list[0]
+        async with aiosqlite.connect("garage.db") as db:
+            try:
+                await db.execute(
+                    "INSERT INTO cars(plate_number, status) VALUES (?,?)", (clean_plate, 'in repair')
+                    )
+                await db.commit()
+                return f"Car {clean_plate} registered successfully in DB!"
+            
+            except aiosqlite.IntegrityError:
+                raise ValueError(f"The car {clean_plate} is already registered!")
     
     def _clean_plates(self, plates):
         result = []
@@ -51,13 +53,39 @@ class Garage:
          
         return result
     
-    def change_status(self, plate_number, new_status):
+    async def change_status(self, plate_number, new_status):
+        clean_plates_list = self._clean_plates([plate_number])
+        if not clean_plates_list:
+            raise ValueError("Invalid plate format.")
+        
+        clean_plate = clean_plates_list[0]
+        async with aiosqlite.connect("garage.db") as db:
+            cursor = await db.execute("SELECT plate_number FROM cars WHERE plate_number = ?", (clean_plate,))
+            
+            row = await cursor.fetchone()
+            if row is None:
+                raise ValueError(f"The car plate_number {plate_number} was not found")
+
+            await db.execute("UPDATE cars SET status = ? WHERE plate_number = ?", (new_status, clean_plate))
+            
+            await db.commit()
+            return f"The status of the vehicle with license plate number {plate_number}  has been successfully updated"
+        
+        
         if plate_number in self.db:
             self.db[plate_number] = new_status
             self.save()
             return f"Status changed to '{new_status}'"
         return f"The car plate_number {plate_number} was not found"
     
+    async def get_all_cars(self):
+        async with aiosqlite.connect("garage.db") as db:
+            cursor = await db.execute("SELECT * FROM cars")
+            
+            rows = await cursor.fetchall()
+            result_dict = {plate: status for plate, status in rows}
+            
+            return result_dict
 
 if __name__ == '__main__':
     
