@@ -21,6 +21,9 @@ class Garage:
         
     async def release_car(self, plate_number):
         clean_plates_list = self._clean_plates([plate_number])
+        if not clean_plates_list:
+            raise ValueError("Invalid plate format.")
+        
         clean_plate = clean_plates_list[0]
         
         async with aiosqlite.connect("garage.db") as db:
