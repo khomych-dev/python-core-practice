@@ -19,16 +19,25 @@ class Garage:
       with open(self.filename, 'w', encoding='utf-8') as f:
          json.dump(self.db, f, indent=4, ensure_ascii=False)
         
-    def release_car(self, plate_number):
-        if plate_number not in self.db:
-            raise ValueError(f"The car plate_number {plate_number} was not found")
+    async def release_car(self, plate_number):
+        clean_plates_list = self._clean_plates([plate_number])
+        clean_plate = clean_plates_list[0]
         
-        elif self.db[plate_number] != 'repair completed':
-            raise ValueError("Cannot release the car. It is still in repair.")
+        async with aiosqlite.connect("garage.db") as db:
+            cursor = await db.execute("SELECT status FROM cars WHERE plate_number = ?", (clean_plate,))
+            
+            row = await cursor.fetchone()
+            if row == None:
+                raise ValueError(f"The car plate_number {plate_number} was not found")
         
-        del self.db[plate_number]
-        self.save()
-        return f"The vehicle with license plate number {plate_number} has been successfully returned to its owner"
+            elif row[0] != 'repair completed':
+                raise ValueError("Cannot release the car. It is still in repair.")
+            
+            await db.execute(
+                "DELETE FROM cars WHERE plate_number = ?", (clean_plate,))
+            
+            await db.commit()
+            return f"The vehicle with license plate number {plate_number} has been successfully returned to its owner"
     
     async def register_car(self, plate_number: str):
         clean_plates_list = self._clean_plates([plate_number])
