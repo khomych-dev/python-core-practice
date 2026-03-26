@@ -1,23 +1,8 @@
-import json
 import aiosqlite
 
 class Garage:
     def __init__(self, filename='garage.json'):
         self.filename = filename
-        self.db = self._load_garage()
-
-    def _load_garage(self):
-        try:
-            with open(self.filename, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                return data
-      
-        except FileNotFoundError:
-            return {}
-    
-    def save(self):
-      with open(self.filename, 'w', encoding='utf-8') as f:
-         json.dump(self.db, f, indent=4, ensure_ascii=False)
         
     async def release_car(self, plate_number):
         clean_plates_list = self._clean_plates([plate_number])
@@ -30,7 +15,7 @@ class Garage:
             cursor = await db.execute("SELECT status FROM cars WHERE plate_number = ?", (clean_plate,))
             
             row = await cursor.fetchone()
-            if row == None:
+            if row is None:
                 raise ValueError(f"The car plate_number {plate_number} was not found")
         
             elif row[0] != 'repair completed':
@@ -68,7 +53,25 @@ class Garage:
          
         return result
     
-    def change_status(self, plate_number, new_status):
+    async def change_status(self, plate_number, new_status):
+        clean_plates_list = self._clean_plates([plate_number])
+        if not clean_plates_list:
+            raise ValueError("Invalid plate format.")
+        
+        clean_plate = clean_plates_list[0]
+        async with aiosqlite.connect("garage.db") as db:
+            cursor = await db.execute("SELECT plate_number FROM cars WHERE plate_number = ?", (clean_plate,))
+            
+            row = await cursor.fetchone()
+            if row is None:
+                raise ValueError(f"The car plate_number {plate_number} was not found")
+
+            await db.execute("UPDATE cars SET status = ? WHERE plate_number = ?", (new_status, clean_plate))
+            
+            await db.commit()
+            return f"The status of the vehicle with license plate number {plate_number}  has been successfully updated"
+        
+        
         if plate_number in self.db:
             self.db[plate_number] = new_status
             self.save()

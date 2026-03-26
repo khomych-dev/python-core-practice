@@ -48,9 +48,9 @@ async def release_car_endpoint(plate_number: str):
 
 
 @app.patch("/cars/{plate_number}/status")
-def new_status(plate_number: str, request: StatusUpdateRequest):
+async def new_status(plate_number: str, request: StatusUpdateRequest):
     try:
-        result_message = my_garage.change_status(
+        result_message = await my_garage.change_status(
             plate_number, request.new_status)
 
         return {"message": result_message}
