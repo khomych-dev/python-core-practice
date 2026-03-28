@@ -1,7 +1,7 @@
 [project]
-name = "task-1"
+name = "garage-management-api"
 version = "0.1.0"
-description = "Add your description here"
+description = "FastAPI backend for garage inventory and management"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
