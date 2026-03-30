@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
 from oop_garage import Garage
 
@@ -25,7 +25,7 @@ async def all_cars():
     return cars_dict
 
 
-@app.post("/cars/register")
+@app.post("/cars", status_code=status.HTTP_201_CREATED)
 async def register_new_car(request: CarRegisterRequest):
     try:
         result_message = await my_garage.register_car(request.plate_number)
