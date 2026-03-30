@@ -1,11 +1,10 @@
 import asyncio
 import aiosqlite
-
-DB_NAME = "garage.db"
+from config import settings
 
 
 async def init_db():
-    async with aiosqlite.connect(DB_NAME) as db:
+    async with aiosqlite.connect(settings.db_path) as db:
         await db.execute("""
                          CREATE TABLE IF NOT EXISTS cars (plate_number TEXT PRIMARY KEY, status TEXT
                          )
