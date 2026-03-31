@@ -24,13 +24,17 @@ async def value_error_handler(request: Request, exc: ValueError):
     
 @app.exception_handler(RequestValidationError)
 async def request_validation_error_handler(request: Request, exc: RequestValidationError):
+    errors = exc.errors()
+    
+    clean_detail = "; ".join([f"{err['loc'][-1]}: {err['msg']}" for err in errors])
+    
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         content={
             "type": "about:blank",
             "title": "Validation Error",
             "status": 422,
-            "detail": str(exc),
+            "detail": str(clean_detail),
             "instance": str(request.url)
             
         }
