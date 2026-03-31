@@ -5,8 +5,10 @@ from pydantic import BaseModel
 router = APIRouter(prefix="/api/v1/cars")
 my_garage = Garage()
 
+
 class CarRegisterRequest(BaseModel):
     plate_number: str
+    brand: str
 
 
 class StatusUpdateRequest(BaseModel):
@@ -25,7 +27,7 @@ async def all_cars():
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=MessageResponse)
 async def register_new_car(request: CarRegisterRequest):
-    result_message = await my_garage.register_car(request.plate_number)
+    result_message = await my_garage.register_car(request.plate_number, request.brand)
 
     return {"message": result_message}
 
