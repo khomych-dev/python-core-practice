@@ -1,5 +1,5 @@
 from fastapi import FastAPI, status, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from routers.cars import router as cars_router
 
 app = FastAPI()
@@ -21,6 +21,6 @@ async def value_error_handler(request: Request, exc: ValueError):
     )
     
     
-@app.get('/')
+@app.get('/', include_in_schema=False)
 def read_root():
-    return {"message": "Welcome to the Garage API"}
+    return RedirectResponse(url="/docs")
