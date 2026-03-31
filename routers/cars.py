@@ -1,18 +1,18 @@
 from fastapi import APIRouter, status
 from oop_garage import Garage
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/cars")
 my_garage = Garage()
 
 
 class CarRegisterRequest(BaseModel):
-    plate_number: str
-    brand: str
+    plate_number: str = Field(min_length=3, max_length=8)
+    brand: str = Field(min_length=2)
 
 
 class StatusUpdateRequest(BaseModel):
-    new_status: str
+    new_status: str = Field(min_length=3)
     
     
 class MessageResponse(BaseModel):
