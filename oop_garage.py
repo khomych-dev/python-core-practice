@@ -72,9 +72,9 @@ class Garage:
     
     async def get_all_cars(self):
         async with aiosqlite.connect(settings.db_path) as db:
-            cursor = await db.execute("SELECT * FROM cars")
+            cursor = await db.execute("SELECT plate_number, brand, status FROM cars")
             
             rows = await cursor.fetchall()
-            result_dict = {plate: status for plate, status in rows}
+            result_dict = {plate: {"brand": brand,"status": status} for plate, brand, status in rows}
             
             return result_dict
