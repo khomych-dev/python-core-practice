@@ -26,7 +26,7 @@ class Garage:
             await db.commit()
             return f"The vehicle with license plate number {plate_number} has been successfully returned to its owner"
     
-    async def register_car(self, plate_number: str):
+    async def register_car(self, plate_number: str, brand: str):
         clean_plates_list = self._clean_plates([plate_number])
         if not clean_plates_list:
             raise ValueError("Invalid plate format. Registration failed.")
@@ -35,7 +35,7 @@ class Garage:
         async with aiosqlite.connect(settings.db_path) as db:
             try:
                 await db.execute(
-                    "INSERT INTO cars(plate_number, status) VALUES (?,?)", (clean_plate, 'in repair')
+                    "INSERT INTO cars(plate_number, brand, status) VALUES (?,?,?)", (clean_plate, brand, 'in repair')
                     )
                 await db.commit()
                 return f"Car {clean_plate} registered successfully in DB!"
