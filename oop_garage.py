@@ -19,6 +19,9 @@ class Garage:
             if not car:
                 raise ValueError(f"Car {clean_plate} not found in Garage!")
         
+            if car.status != "repaired":
+                raise ValueError(f"Cannot release car {clean_plate}. Current status is '{car.status}'. Only 'repaired' cars can be released.")
+        
             await session.delete(car)
             await session.commit()
             
