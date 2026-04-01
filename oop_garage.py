@@ -6,10 +6,7 @@ from models import CarDB
 class Garage:
         
     async def release_car(self, plate_number: str) -> str:
-        clean_plates_list = self._clean_plates([plate_number])
-        if not clean_plates_list:
-            raise ValueError("Invalid plate format.")
-        clean_plate = clean_plates_list[0]
+        clean_plate = self._clean_plate(plate_number)
         
         async with AsyncSessionLocal() as session:
             stmt = select(CarDB).where(CarDB.plate_number == clean_plate)
@@ -28,10 +25,7 @@ class Garage:
             return f"Car {clean_plate} released successfully!"
     
     async def register_car(self, plate_number: str, brand: str) -> str:
-        clean_plates_list = self._clean_plates([plate_number])
-        if not clean_plates_list:
-            raise ValueError("Invalid plate format. Registration failed.")
-        clean_plate = clean_plates_list[0]
+        clean_plate = self._clean_plate(plate_number)
         
         async with AsyncSessionLocal() as session:
             try:
@@ -46,20 +40,15 @@ class Garage:
                 raise ValueError(f"The car {clean_plate} is already registered!")
                 
                 
-    def _clean_plates(self, plates: list[str]) -> list[str]:
-        result = []
-        for plate in plates:
-            clean_plate = str(plate).upper().strip().replace(" ", "")
-            if 3 <= len(clean_plate) <= 8:
-                result.append(clean_plate)
-         
-        return result
+    def _clean_plate(self, plate: str) -> str:
+        clean = plate.upper().replace(" ", "")
+        if 3 <= len(clean) <= 8:
+            return clean
+        
+        raise ValueError("Invalid plate format.")
     
     async def change_status(self, plate_number: str, new_status: str) -> str:
-        clean_plates_list = self._clean_plates([plate_number])
-        if not clean_plates_list:
-            raise ValueError("Invalid plate format.")
-        clean_plate = clean_plates_list[0]
+        clean_plate = self._clean_plate(plate_number)
         
         async with AsyncSessionLocal() as session:
             stmt = select(CarDB).where(CarDB.plate_number == clean_plate)
