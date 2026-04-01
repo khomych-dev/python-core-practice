@@ -1,4 +1,5 @@
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select
 from database import AsyncSessionLocal
 from models import CarDB
 
@@ -74,10 +75,14 @@ class Garage:
             return f"The status of the vehicle with license plate number {plate_number}  has been successfully updated"
     
     async def get_all_cars(self) -> dict[str, dict[str, str]]:
-        async with aiosqlite.connect(settings.db_path) as db:
-            cursor = await db.execute("SELECT plate_number, brand, status FROM cars")
+        async with AsyncSessionLocal() as session:
+            stmt = select(CarDB)
             
-            rows = await cursor.fetchall()
-            result_dict = {plate: {"brand": brand,"status": status} for plate, brand, status in rows}
+            result = await session.execute(stmt)
             
-            return result_dict
+            cars = result.scalars().all()
+            
+            return {
+                car.plate_number:
+                    {"brand": car.brand, "status": car.status} for car in cars
+                }
