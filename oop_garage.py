@@ -1,5 +1,6 @@
-import aiosqlite
-from config import settings
+from sqlalchemy.exc import IntegrityError
+from database import AsyncSessionLocal
+from models import CarDB
 
 class Garage:
         
@@ -32,17 +33,19 @@ class Garage:
             raise ValueError("Invalid plate format. Registration failed.")
         
         clean_plate = clean_plates_list[0]
-        async with aiosqlite.connect(settings.db_path) as db:
+        async with AsyncSessionLocal() as session:
             try:
-                await db.execute(
-                    "INSERT INTO cars(plate_number, brand, status) VALUES (?,?,?)", (clean_plate, brand, 'in repair')
-                    )
-                await db.commit()
+                new_car = CarDB(plate_number=clean_plate, brand=brand, status='in repair')
+                session.add(new_car)
+                
+                await session.commit()
                 return f"Car {clean_plate} registered successfully in DB!"
             
-            except aiosqlite.IntegrityError:
+            except IntegrityError:
+                await session.rollback()
                 raise ValueError(f"The car {clean_plate} is already registered!")
-    
+                
+                
     def _clean_plates(self, plates: list[str]) -> list[str]:
         result = []
         for plate in plates:
