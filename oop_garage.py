@@ -9,37 +9,33 @@ class Garage:
         clean_plates_list = self._clean_plates([plate_number])
         if not clean_plates_list:
             raise ValueError("Invalid plate format.")
-        
         clean_plate = clean_plates_list[0]
         
-        async with aiosqlite.connect(settings.db_path) as db:
-            cursor = await db.execute("SELECT status FROM cars WHERE plate_number = ?", (clean_plate,))
+        async with AsyncSessionLocal() as session:
+            stmt = select(CarDB).where(CarDB.plate_number == clean_plate)
+            result = await session.execute(stmt)
+            car = result.scalar_one_or_none()
             
-            row = await cursor.fetchone()
-            if row is None:
-                raise ValueError(f"The car plate_number {plate_number} was not found")
+            if not car:
+                raise ValueError(f"Car {clean_plate} not found in Garage!")
         
-            elif row[0] != 'repair completed':
-                raise ValueError("Cannot release the car. It is still in repair.")
+            await session.delete(car)
+            await session.commit()
             
-            await db.execute(
-                "DELETE FROM cars WHERE plate_number = ?", (clean_plate,))
-            
-            await db.commit()
-            return f"The vehicle with license plate number {plate_number} has been successfully returned to its owner"
+            return f"Car {clean_plate} released successfully!"
     
     async def register_car(self, plate_number: str, brand: str) -> str:
         clean_plates_list = self._clean_plates([plate_number])
         if not clean_plates_list:
             raise ValueError("Invalid plate format. Registration failed.")
-        
         clean_plate = clean_plates_list[0]
+        
         async with AsyncSessionLocal() as session:
             try:
                 new_car = CarDB(plate_number=clean_plate, brand=brand, status='in repair')
                 session.add(new_car)
-                
                 await session.commit()
+                
                 return f"Car {clean_plate} registered successfully in DB!"
             
             except IntegrityError:
@@ -60,13 +56,13 @@ class Garage:
         clean_plates_list = self._clean_plates([plate_number])
         if not clean_plates_list:
             raise ValueError("Invalid plate format.")
-        
         clean_plate = clean_plates_list[0]
+        
         async with AsyncSessionLocal() as session:
             stmt = select(CarDB).where(CarDB.plate_number == clean_plate)
             result = await session.execute(stmt)
-            
             car = result.scalar_one_or_none()
+            
             if not car:
                 raise ValueError(f"Car {clean_plate} not found in Garage!")
 
