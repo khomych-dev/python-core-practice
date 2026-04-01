@@ -3,7 +3,7 @@ from config import settings
 
 class Garage:
         
-    async def release_car(self, plate_number):
+    async def release_car(self, plate_number: str) -> str:
         clean_plates_list = self._clean_plates([plate_number])
         if not clean_plates_list:
             raise ValueError("Invalid plate format.")
@@ -26,7 +26,7 @@ class Garage:
             await db.commit()
             return f"The vehicle with license plate number {plate_number} has been successfully returned to its owner"
     
-    async def register_car(self, plate_number: str, brand: str):
+    async def register_car(self, plate_number: str, brand: str) -> str:
         clean_plates_list = self._clean_plates([plate_number])
         if not clean_plates_list:
             raise ValueError("Invalid plate format. Registration failed.")
@@ -43,7 +43,7 @@ class Garage:
             except aiosqlite.IntegrityError:
                 raise ValueError(f"The car {clean_plate} is already registered!")
     
-    def _clean_plates(self, plates):
+    def _clean_plates(self, plates: list[str]) -> list[str]:
         result = []
         for plate in plates:
             clean_plate = str(plate).upper().strip().replace(" ", "")
@@ -52,7 +52,7 @@ class Garage:
          
         return result
     
-    async def change_status(self, plate_number, new_status):
+    async def change_status(self, plate_number: str, new_status: str) -> str:
         clean_plates_list = self._clean_plates([plate_number])
         if not clean_plates_list:
             raise ValueError("Invalid plate format.")
@@ -70,7 +70,7 @@ class Garage:
             await db.commit()
             return f"The status of the vehicle with license plate number {plate_number}  has been successfully updated"
     
-    async def get_all_cars(self):
+    async def get_all_cars(self) -> dict[str, dict[str, str]]:
         async with aiosqlite.connect(settings.db_path) as db:
             cursor = await db.execute("SELECT plate_number, brand, status FROM cars")
             
