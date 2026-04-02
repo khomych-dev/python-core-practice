@@ -24,12 +24,12 @@ class Garage:
             
             return f"Car {clean_plate} released successfully!"
     
-    async def register_car(self, plate_number: str, brand: str) -> str:
+    async def register_car(self, owner: str, plate_number: str, brand: str) -> str:
         clean_plate = self._clean_plate(plate_number)
         
         async with AsyncSessionLocal() as session:
             try:
-                new_car = CarDB(plate_number=clean_plate, brand=brand, status='in repair')
+                new_car = CarDB(owner=owner, plate_number=clean_plate, brand=brand, status='in repair')
                 session.add(new_car)
                 await session.commit()
                 
@@ -63,7 +63,7 @@ class Garage:
             
             return f"Status of {clean_plate} changed to {new_status}"
     
-    async def get_all_cars(self) -> dict[str, dict[str, str]]:
+    async def get_all_cars(self) -> dict[str, dict[str, str | None]]:
         async with AsyncSessionLocal() as session:
             stmt = select(CarDB)
             
@@ -73,5 +73,9 @@ class Garage:
             
             return {
                 car.plate_number:
-                    {"brand": car.brand, "status": car.status} for car in cars
+                    {
+                        "owner": car.owner,
+                        "brand": car.brand,
+                        "status": car.status
+                        } for car in cars
                 }
