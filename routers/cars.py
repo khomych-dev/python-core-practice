@@ -7,6 +7,7 @@ my_garage = Garage()
 
 
 class CarRegisterRequest(BaseModel):
+    owner: str = Field(min_length=2)
     plate_number: str = Field(min_length=3, max_length=8)
     brand: str = Field(min_length=2)
 
@@ -27,7 +28,7 @@ async def all_cars():
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=MessageResponse)
 async def register_new_car(request: CarRegisterRequest):
-    result_message = await my_garage.register_car(request.plate_number, request.brand)
+    result_message = await my_garage.register_car(request.owner, request.plate_number, request.brand)
 
     return {"message": result_message}
 
