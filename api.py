@@ -2,10 +2,12 @@ from fastapi import FastAPI, status, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from routers.cars import router as cars_router
+import auth
 
 app = FastAPI()
 
 app.include_router(cars_router)
+app.include_router(auth.router)
 
 
 @app.exception_handler(ValueError)
