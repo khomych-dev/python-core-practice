@@ -13,3 +13,11 @@ class CarDB(Base):
     brand: Mapped[str] = mapped_column(String)
     status: Mapped[str] = mapped_column(String)
     owner: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
+class UserDB(Base):
+    __tablename__ = "users"
+
+    username: Mapped[str] = mapped_column(String, primary_key=True)
+    hashed_password: Mapped[str] = mapped_column(String)
+    role: Mapped[str] = mapped_column(String, default="mechanic")
