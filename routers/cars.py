@@ -1,6 +1,8 @@
-from fastapi import APIRouter, status
-from oop_garage import Garage
+from fastapi import APIRouter, status, Depends
 from pydantic import BaseModel, Field
+
+from oop_garage import Garage
+from auth import get_current_user
 
 router = APIRouter(prefix="/api/v1/cars")
 my_garage = Garage()
@@ -14,8 +16,8 @@ class CarRegisterRequest(BaseModel):
 
 class StatusUpdateRequest(BaseModel):
     new_status: str = Field(min_length=3)
-    
-    
+
+
 class MessageResponse(BaseModel):
     message: str
 
@@ -27,10 +29,15 @@ async def all_cars():
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=MessageResponse)
-async def register_new_car(request: CarRegisterRequest):
-    result_message = await my_garage.register_car(request.owner, request.plate_number, request.brand)
+async def register_new_car(
+        request: CarRegisterRequest,
+        current_user: str = Depends(get_current_user)
+):
+    result_message = await my_garage.register_car(
+        request.owner, request.plate_number, request.brand
+    )
 
-    return {"message": result_message}
+    return {"message": f"Mechanic {current_user} reports: {result_message}"}
 
 
 @router.delete("/{plate_number}", response_model=MessageResponse)
@@ -43,6 +50,6 @@ async def release_car_endpoint(plate_number: str):
 @router.patch("/{plate_number}/status", response_model=MessageResponse)
 async def new_status(plate_number: str, request: StatusUpdateRequest):
     result_message = await my_garage.change_status(
-            plate_number, request.new_status)
+        plate_number, request.new_status)
 
     return {"message": result_message}
