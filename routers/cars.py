@@ -1,11 +1,13 @@
 from fastapi import APIRouter, status, Depends
 from pydantic import BaseModel, Field
+import logging
 
 from oop_garage import Garage
 from auth import get_current_user
 
 router = APIRouter(prefix="/api/v1/cars")
 my_garage = Garage()
+logger = logging.getLogger(__name__)
 
 
 class CarRegisterRequest(BaseModel):
@@ -30,14 +32,14 @@ async def all_cars():
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=MessageResponse)
 async def register_new_car(
-        request: CarRegisterRequest,
-        current_user: str = Depends(get_current_user)
+    request: CarRegisterRequest,
+    current_user: str = Depends(get_current_user)
 ):
-    result_message = await my_garage.register_car(
-        request.owner, request.plate_number, request.brand
-    )
-
-    return {"message": f"Mechanic {current_user} reports: {result_message}"}
+    logger.info(f"[AUDIT] User '{current_user}' is registering the vehicle {request.plate_number}")
+    
+    result_message = await my_garage.register_car(request.owner, request.plate_number, request.brand)
+    
+    return {"message": result_message}
 
 
 @router.delete("/{plate_number}", response_model=MessageResponse)
