@@ -48,7 +48,16 @@ async def register_new_car(
 
 
 @router.patch("/{plate_number}/status", response_model=MessageResponse)
-async def new_status(plate_number: str, request: StatusUpdateRequest):
+async def new_status(
+    plate_number: str,
+    request: StatusUpdateRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    username = current_user["username"]
+
+    logger.info(
+        f"[AUDIT] User '{username}' changed status of car {plate_number} to '{request.new_status}'")
+
     result_message = await my_garage.change_status(
         plate_number, request.new_status)
 
