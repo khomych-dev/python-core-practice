@@ -25,7 +25,9 @@ class MessageResponse(BaseModel):
 
 
 @router.get("/")
-async def all_cars():
+async def all_cars(
+    current_user: dict = Depends(get_current_user)
+):
     cars_dict = await my_garage.get_all_cars()
     return cars_dict
 
