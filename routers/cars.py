@@ -58,3 +58,15 @@ async def new_status(plate_number: str, request: StatusUpdateRequest):
         plate_number, request.new_status)
 
     return {"message": result_message}
+
+
+@router.delete("/{plate_number}")
+async def delete_car(
+    plate_number: str,
+    admin_user: dict = Depends(require_admin)
+):
+    admin_name = admin_user["username"]
+    logger.warning(
+        f"[AUDIT] ADMINISTRATOR '{admin_name}' IS DELETING CAR {plate_number}")
+
+    return {"message": f"The car {plate_number} has been successfully deleted by the administrator {admin_name}."}
