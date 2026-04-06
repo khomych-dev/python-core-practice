@@ -45,13 +45,6 @@ async def register_new_car(
     return {"message": result_message}
 
 
-@router.delete("/{plate_number}", response_model=MessageResponse)
-async def release_car_endpoint(plate_number: str):
-    result_message = await my_garage.release_car(plate_number)
-
-    return {'message': result_message}
-
-
 @router.patch("/{plate_number}/status", response_model=MessageResponse)
 async def new_status(plate_number: str, request: StatusUpdateRequest):
     result_message = await my_garage.change_status(
@@ -60,7 +53,7 @@ async def new_status(plate_number: str, request: StatusUpdateRequest):
     return {"message": result_message}
 
 
-@router.delete("/{plate_number}")
+@router.delete("/{plate_number}", response_model=MessageResponse)
 async def delete_car(
     plate_number: str,
     admin_user: dict = Depends(require_admin)
@@ -69,4 +62,6 @@ async def delete_car(
     logger.warning(
         f"[AUDIT] ADMINISTRATOR '{admin_name}' IS DELETING CAR {plate_number}")
 
-    return {"message": f"The car {plate_number} has been successfully deleted by the administrator {admin_name}."}
+    result_message = await my_garage.release_car(plate_number)
+
+    return {"message": f"[Audit: {admin_name}] {result_message}"}
