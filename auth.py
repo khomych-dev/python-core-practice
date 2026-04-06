@@ -72,11 +72,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
         username: str | None = payload.get("sub")
-        if username is None:
+        role: str | None = payload.get("role")
+        
+        if username is None or role is None:
             raise HTTPException(
                 status_code=401, detail="Could not validate credentials")
 
-        return username
+        return {"username": username, "role": role}
 
     except jwt.ExpiredSignatureError:
         raise HTTPException(
