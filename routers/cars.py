@@ -1,12 +1,13 @@
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, HTTPException, Depends
 from pydantic import BaseModel, Field
 import logging
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
-from oop_garage import Garage
-from auth import get_current_user, require_admin
+from models import CarDB
+from auth import get_current_user, require_admin, get_db
 
 router = APIRouter(prefix="/api/v1/cars")
-my_garage = Garage()
 logger = logging.getLogger(__name__)
 
 
@@ -35,16 +36,30 @@ async def all_cars(
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=MessageResponse)
 async def register_new_car(
     request: CarRegisterRequest,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     username = current_user["username"]
-
     logger.info(
         f"[AUDIT] User '{username}' is registering the vehicle {request.plate_number}")
 
-    result_message = await my_garage.register_car(request.owner, request.plate_number, request.brand)
+    stmt = select(CarDB).where(CarDB.plate_number == request.plate_number)
+    result = await db.execute(stmt)
+    if result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=400, detail=f"Car with plate {request.plate_number} is already in the database.")
 
-    return {"message": result_message}
+    new_car = CarDB(
+        plate_number=request.plate_number,
+        brand=request.brand,
+        owner=request.owner,
+        status="in_garage"
+    )
+
+    db.add(new_car)
+    await db.commit()
+
+    return {"message": f"Vehicle {request.brand} ({request.plate_number}) successfully registered by {username}."}
 
 
 @router.patch("/{plate_number}/status", response_model=MessageResponse)
