@@ -104,12 +104,22 @@ async def new_status(
 @router.delete("/{plate_number}", response_model=MessageResponse)
 async def delete_car(
     plate_number: str,
-    admin_user: dict = Depends(require_admin)
+    admin_user: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db)
 ):
     admin_name = admin_user["username"]
     logger.warning(
         f"[AUDIT] ADMINISTRATOR '{admin_name}' IS DELETING CAR {plate_number}")
 
-    result_message = await my_garage.release_car(plate_number)
+    stmt = select(CarDB).where(CarDB.plate_number == plate_number)
+    result = await db.execute(stmt)
+    car = result.scalar_one_or_none()
 
-    return {"message": f"[Audit: {admin_name}] {result_message}"}
+    if not car:
+        raise HTTPException(
+            status_code=404, detail=f"Car with plate {plate_number} not found")
+
+    await db.delete(car)
+    await db.commit()
+
+    return {"message": f"The car {plate_number} has been successfully deleted by the administrator {admin_name}."}
