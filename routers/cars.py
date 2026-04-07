@@ -27,10 +27,23 @@ class MessageResponse(BaseModel):
 
 @router.get("/")
 async def all_cars(
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
-    cars_dict = await my_garage.get_all_cars()
-    return cars_dict
+    stmt = select(CarDB)
+    result = await db.execute(stmt)
+
+    cars = result.scalars().all()
+
+    return [
+        {
+            "plate_number": car.plate_number,
+            "brand": car.brand,
+            "owner": car.owner,
+            "status": car.status
+        }
+        for car in cars
+    ]
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=MessageResponse)
