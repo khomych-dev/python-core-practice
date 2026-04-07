@@ -24,3 +24,4 @@ class UserDB(Base):
     username: Mapped[str] = mapped_column(String, primary_key=True)
     hashed_password: Mapped[str] = mapped_column(String)
     role: Mapped[str] = mapped_column(String, default="mechanic")
+    cars: Mapped[list["CarDB"]] = relationship(back_populates="mechanic")
