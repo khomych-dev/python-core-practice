@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status, HTTPException, Depends
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -15,6 +15,13 @@ class CarRegisterRequest(BaseModel):
     owner: str = Field(min_length=2)
     plate_number: str = Field(min_length=3, max_length=8)
     brand: str = Field(min_length=2)
+
+    @field_validator('plate_number')
+    @classmethod
+    def format_plate(cls, value: str) -> str:
+        cleaned = value.replace(" ", "").upper()
+
+        return cleaned
 
 
 class StatusUpdateRequest(BaseModel):
@@ -118,6 +125,12 @@ async def delete_car(
     if not car:
         raise HTTPException(
             status_code=404, detail=f"Car with plate {plate_number} not found")
+
+    if car.status != "released":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete car. Current status is '{car.status}'. Change status to 'released' first."
+        )
 
     await db.delete(car)
     await db.commit()
