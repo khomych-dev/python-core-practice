@@ -1,5 +1,5 @@
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy import String, ForeignKey
 
 
 class Base(DeclarativeBase):
@@ -13,6 +13,9 @@ class CarDB(Base):
     brand: Mapped[str] = mapped_column(String)
     status: Mapped[str] = mapped_column(String)
     owner: Mapped[str | None] = mapped_column(String, nullable=True)
+    mechanic_username: Mapped[str] = mapped_column(
+        ForeignKey("users.username"))
+    mechanic: Mapped["UserDB"] = relationship(back_populates="cars")
 
 
 class UserDB(Base):
