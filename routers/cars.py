@@ -32,7 +32,6 @@ async def all_cars(
 ):
     stmt = select(CarDB)
     result = await db.execute(stmt)
-
     cars = result.scalars().all()
 
     return [
@@ -79,17 +78,27 @@ async def register_new_car(
 async def new_status(
     plate_number: str,
     request: StatusUpdateRequest,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     username = current_user["username"]
 
     logger.info(
         f"[AUDIT] User '{username}' changed status of car {plate_number} to '{request.new_status}'")
 
-    result_message = await my_garage.change_status(
-        plate_number, request.new_status)
+    stmt = select(CarDB).where(CarDB.plate_number == plate_number)
+    result = await db.execute(stmt)
+    car = result.scalar_one_or_none()
 
-    return {"message": result_message}
+    if not car:
+        raise HTTPException(
+            status_code=404, detail=f"Car with plate {plate_number} not found")
+
+    car.status = request.new_status
+
+    await db.commit()
+
+    return {"message": f"Status for car {plate_number} successfully updated to '{request.new_status}'"}
 
 
 @router.delete("/{plate_number}", response_model=MessageResponse)
