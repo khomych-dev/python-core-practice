@@ -72,7 +72,8 @@ async def register_new_car(
         plate_number=request.plate_number,
         brand=request.brand,
         owner=request.owner,
-        status="in_garage"
+        status="in_garage",
+        mechanic_username=username
     )
 
     db.add(new_car)
