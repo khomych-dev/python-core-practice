@@ -46,7 +46,8 @@ async def all_cars(
             "plate_number": car.plate_number,
             "brand": car.brand,
             "owner": car.owner,
-            "status": car.status
+            "status": car.status,
+            "mechanic": car.mechanic_username
         }
         for car in cars
     ]
