@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status, Request
+from fastapi import FastAPI, status, Request, HTTPException
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from routers.cars import router as cars_router
@@ -22,14 +22,15 @@ async def value_error_handler(request: Request, exc: ValueError):
             "instance": str(request.url)
         }
     )
-    
-    
+
+
 @app.exception_handler(RequestValidationError)
 async def request_validation_error_handler(request: Request, exc: RequestValidationError):
     errors = exc.errors()
-    
-    clean_detail = "; ".join([f"{err['loc'][-1]}: {err['msg']}" for err in errors])
-    
+
+    clean_detail = "; ".join(
+        [f"{err['loc'][-1]}: {err['msg']}" for err in errors])
+
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         content={
@@ -38,11 +39,29 @@ async def request_validation_error_handler(request: Request, exc: RequestValidat
             "status": 422,
             "detail": str(clean_detail),
             "instance": str(request.url)
-            
+
         }
     )
-    
-    
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    title = "Not Found" if exc.status_code == 404 else "HTTP Error"
+    if exc.status_code == 401 or exc.status_code == 403:
+        title = "Authentication Error"
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "type": "about:blank",
+            "title": title,
+            "status": exc.status_code,
+            "detail": exc.detail,
+            "instance": str(request.url)
+        }
+    )
+
+
 @app.get('/', include_in_schema=False)
 def read_root():
     return RedirectResponse(url="/docs")
