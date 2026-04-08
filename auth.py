@@ -80,7 +80,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
         username: str | None = payload.get("sub")
         role: str | None = payload.get("role")
+        token_type: str | None = payload.get("type")
         
+        if token_type != "access":
+            raise HTTPException(
+                status_code=401, detail="Invalid token type. Expected access token."
+            )
+
         if username is None or role is None:
             raise HTTPException(
                 status_code=401, detail="Could not validate credentials")
