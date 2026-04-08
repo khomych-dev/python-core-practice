@@ -105,3 +105,38 @@ async def require_admin(current_user: dict = Depends(get_current_user)):
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Operation not permitted. Admins only.")
     return current_user
+
+
+@router.post("/refresh")
+async def refresh_token_endpoint(
+    refresh_token: str = Header(..., alias="Authorization"),
+    db: AsyncSession = Depends(get_db)
+):
+    if refresh_token.startswith("Bearer "):
+        token = refresh_token.split(" ")[1]
+    else:
+        token = refresh_token
+        
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str | None = payload.get("sub")
+        token_type: str | None = payload.get("type")
+        
+        if username is None or token_type != "refresh":
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
+            
+        stmt = select(UserDB).where(UserDB.username == username)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            raise HTTPException(status_code=401, detail="User no longer exists")
+            
+        new_access_token = create_access_token(data={"sub": user.username, "role": user.role}) 
+        
+        return {"access_token": new_access_token, "token_type": "bearer"}
+        
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Refresh token expired. Please log in again.")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
