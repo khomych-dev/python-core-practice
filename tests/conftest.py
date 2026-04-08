@@ -2,6 +2,7 @@ import os
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from dotenv import load_dotenv
+from sqlalchemy.pool import NullPool
 
 from models import Base
 from auth import get_db
@@ -15,7 +16,7 @@ if TEST_DB_URL is None:
     raise ValueError(
         "CRITICAL ERROR: DATABASE_URL_TEST not found in the .env file!")
 
-engine_test = create_async_engine(TEST_DB_URL)
+engine_test = create_async_engine(TEST_DB_URL, poolclass=NullPool)
 TestingSessionLocal = async_sessionmaker(
     engine_test, class_=AsyncSession, expire_on_commit=False)
 
