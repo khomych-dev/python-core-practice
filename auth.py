@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi import APIRouter, HTTPException, Depends, Header, Request
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,6 +7,7 @@ from sqlalchemy import select
 from database import AsyncSessionLocal
 from models import UserDB
 from security import get_password_hash, verify_password, create_access_token, create_refresh_token, SECRET_KEY, ALGORITHM
+from limiter import limiter
 
 import jwt
 
@@ -30,7 +31,12 @@ async def get_db():
 
 
 @router.post("/register", status_code=201)
-async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def register_user(
+    request: Request,
+    user: UserCreate,
+    db: AsyncSession = Depends(get_db)):
+    
     stmt = select(UserDB).where(UserDB.username == user.username)
     result = await db.execute(stmt)
     if result.scalar_one_or_none():
@@ -52,7 +58,9 @@ async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login")
+@limiter.limit("5/minute")
 async def login_user(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db)
 ):

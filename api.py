@@ -3,8 +3,17 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from routers.cars import router as cars_router
 import auth
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
+from limiter import limiter
 
 app = FastAPI()
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler) # type: ignore
+app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(cars_router)
 app.include_router(auth.router)
