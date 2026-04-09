@@ -12,7 +12,11 @@ async def test_get_cars_unauthorized():
         response = await ac.get("/api/v1/cars/")
 
         assert response.status_code == 401
-        assert response.json() == {"detail": "Not authenticated"}
+        
+        data = response.json()
+        assert data["status"] == 401
+        assert data["title"] == "Authentication Error"
+        assert data["detail"] == "Not authenticated"
 
 
 async def mock_mechanic_user():
