@@ -1,59 +1,76 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from oop_garage import Garage
+from fastapi import FastAPI, status, Request, HTTPException
+from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.exceptions import RequestValidationError
+from routers.cars import router as cars_router
+import auth
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
+from limiter import limiter
 
 app = FastAPI()
-my_garage = Garage()
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler) # type: ignore
+app.add_middleware(SlowAPIMiddleware)
+
+app.include_router(cars_router)
+app.include_router(auth.router)
 
 
-class CarRegisterRequest(BaseModel):
-    plate_number: str
+@app.exception_handler(ValueError)
+async def value_error_handler(request: Request, exc: ValueError):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={
+            "type": "about:blank",
+            "title": "Validation Error",
+            "status": 400,
+            "detail": str(exc),
+            "instance": str(request.url)
+        }
+    )
 
 
-class StatusUpdateRequest(BaseModel):
-    new_status: str
+@app.exception_handler(RequestValidationError)
+async def request_validation_error_handler(request: Request, exc: RequestValidationError):
+    errors = exc.errors()
+
+    clean_detail = "; ".join(
+        [f"{err['loc'][-1]}: {err['msg']}" for err in errors])
+
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        content={
+            "type": "about:blank",
+            "title": "Validation Error",
+            "status": 422,
+            "detail": str(clean_detail),
+            "instance": str(request.url)
+
+        }
+    )
 
 
-@app.get('/')
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    title = "Not Found" if exc.status_code == 404 else "HTTP Error"
+    if exc.status_code == 401 or exc.status_code == 403:
+        title = "Authentication Error"
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "type": "about:blank",
+            "title": title,
+            "status": exc.status_code,
+            "detail": exc.detail,
+            "instance": str(request.url)
+        }
+    )
+
+
+@app.get('/', include_in_schema=False)
 def read_root():
-    return {"message": "Welcome to the Garage API"}
-
-
-@app.get("/cars")
-async def all_cars():
-    cars_dict = await my_garage.get_all_cars()
-    return cars_dict
-
-
-@app.post("/cars/register")
-async def register_new_car(request: CarRegisterRequest):
-    try:
-        result_message = await my_garage.register_car(request.plate_number)
-
-        return {"message": result_message}
-
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@app.delete("/cars/{plate_number}")
-async def release_car_endpoint(plate_number: str):
-    try:
-        result_message = await my_garage.release_car(plate_number)
-
-        return {'message': result_message}
-
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@app.patch("/cars/{plate_number}/status")
-async def new_status(plate_number: str, request: StatusUpdateRequest):
-    try:
-        result_message = await my_garage.change_status(
-            plate_number, request.new_status)
-
-        return {"message": result_message}
-
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return RedirectResponse(url="/docs")
