@@ -18,6 +18,10 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 class UserCreate(BaseModel):
     username: str
     password: str
+    
+    
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
 
 
 async def get_db():
@@ -68,8 +72,8 @@ async def login_user(
     )
 
     return {
-        "access_token": access_token, 
-        "refresh_token": refresh_token, 
+        "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer"
     }
 
@@ -81,7 +85,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         username: str | None = payload.get("sub")
         role: str | None = payload.get("role")
         token_type: str | None = payload.get("type")
-        
+
         if token_type != "access":
             raise HTTPException(
                 status_code=401, detail="Invalid token type. Expected access token."
@@ -99,23 +103,21 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     except jwt.InvalidTokenError:
         raise HTTPException(
             status_code=401, detail="Invalid token. Access denied.")
-        
-        
+
+
 async def require_admin(current_user: dict = Depends(get_current_user)):
     if current_user.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Operation not permitted. Admins only.")
+        raise HTTPException(
+            status_code=403, detail="Operation not permitted. Admins only.")
     return current_user
 
 
 @router.post("/refresh")
 async def refresh_token_endpoint(
-    refresh_token: str = Header(..., alias="Authorization"),
+    request: RefreshTokenRequest, 
     db: AsyncSession = Depends(get_db)
 ):
-    if refresh_token.startswith("Bearer "):
-        token = refresh_token.split(" ")[1]
-    else:
-        token = refresh_token
+    token = request.refresh_token
         
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
