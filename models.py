@@ -10,7 +10,7 @@ class CarDB(Base):
     __tablename__ = "cars"
 
     plate_number: Mapped[str] = mapped_column(String, primary_key=True)
-    brand: Mapped[str] = mapped_column(String)
+    brand: Mapped[str] = mapped_column(String, index=True)
     status: Mapped[str] = mapped_column(String)
     owner: Mapped[str | None] = mapped_column(String, nullable=True)
     mechanic_username: Mapped[str] = mapped_column(
