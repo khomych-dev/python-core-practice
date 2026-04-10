@@ -1,14 +1,13 @@
 from fastapi import APIRouter, status, HTTPException, Depends
 from pydantic import BaseModel, Field, field_validator
-import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from logger import log
 
 from models import CarDB
 from auth import get_current_user, require_admin, get_db
 
 router = APIRouter(prefix="/api/v1/cars")
-logger = logging.getLogger(__name__)
 
 
 class CarRegisterRequest(BaseModel):
@@ -59,8 +58,11 @@ async def register_new_car(
     db: AsyncSession = Depends(get_db),
 ):
     username = current_user["username"]
-    logger.info(
-        f"[AUDIT] User '{username}' is registering the vehicle {request.plate_number}"
+    log.info(
+        "car_registration_started",
+        username=username,
+        plate_number=request.plate_number,
+        action_type="audit",
     )
 
     stmt = select(CarDB).where(CarDB.plate_number == request.plate_number)
@@ -96,8 +98,12 @@ async def new_status(
 ):
     username = current_user["username"]
 
-    logger.info(
-        f"[AUDIT] User '{username}' changed status of car {plate_number} to '{request.new_status}'"
+    log.info(
+        "car_status_updated",
+        username=username,
+        plate_number=plate_number,
+        new_status=request.new_status,
+        action_type="audit",
     )
 
     stmt = select(CarDB).where(CarDB.plate_number == plate_number)
@@ -125,8 +131,11 @@ async def delete_car(
     db: AsyncSession = Depends(get_db),
 ):
     admin_name = admin_user["username"]
-    logger.warning(
-        f"[AUDIT] ADMINISTRATOR '{admin_name}' IS DELETING CAR {plate_number}"
+    log.warning(
+        "car_deleted",
+        admin_username=admin_name,
+        plate_number=plate_number,
+        action_type="audit",
     )
 
     stmt = select(CarDB).where(CarDB.plate_number == plate_number)
