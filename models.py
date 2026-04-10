@@ -13,8 +13,7 @@ class CarDB(Base):
     brand: Mapped[str] = mapped_column(String, index=True)
     status: Mapped[str] = mapped_column(String)
     owner: Mapped[str | None] = mapped_column(String, nullable=True)
-    mechanic_username: Mapped[str] = mapped_column(
-        ForeignKey("users.username"))
+    mechanic_username: Mapped[str] = mapped_column(ForeignKey("users.username"))
     mechanic: Mapped["UserDB"] = relationship(back_populates="cars")
 
 

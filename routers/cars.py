@@ -16,7 +16,7 @@ class CarRegisterRequest(BaseModel):
     plate_number: str = Field(min_length=3, max_length=8)
     brand: str = Field(min_length=2)
 
-    @field_validator('plate_number')
+    @field_validator("plate_number")
     @classmethod
     def format_plate(cls, value: str) -> str:
         cleaned = value.replace(" ", "").upper()
@@ -34,8 +34,7 @@ class MessageResponse(BaseModel):
 
 @router.get("/")
 async def all_cars(
-    current_user: dict = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)
 ):
     stmt = select(CarDB)
     result = await db.execute(stmt)
@@ -47,7 +46,7 @@ async def all_cars(
             "brand": car.brand,
             "owner": car.owner,
             "status": car.status,
-            "mechanic": car.mechanic_username
+            "mechanic": car.mechanic_username,
         }
         for car in cars
     ]
@@ -57,30 +56,35 @@ async def all_cars(
 async def register_new_car(
     request: CarRegisterRequest,
     current_user: dict = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     username = current_user["username"]
     logger.info(
-        f"[AUDIT] User '{username}' is registering the vehicle {request.plate_number}")
+        f"[AUDIT] User '{username}' is registering the vehicle {request.plate_number}"
+    )
 
     stmt = select(CarDB).where(CarDB.plate_number == request.plate_number)
     result = await db.execute(stmt)
     if result.scalar_one_or_none():
         raise HTTPException(
-            status_code=400, detail=f"Car with plate {request.plate_number} is already in the database.")
+            status_code=400,
+            detail=f"Car with plate {request.plate_number} is already in the database.",
+        )
 
     new_car = CarDB(
         plate_number=request.plate_number,
         brand=request.brand,
         owner=request.owner,
         status="in_garage",
-        mechanic_username=username
+        mechanic_username=username,
     )
 
     db.add(new_car)
     await db.commit()
 
-    return {"message": f"Vehicle {request.brand} ({request.plate_number}) successfully registered by {username}."}
+    return {
+        "message": f"Vehicle {request.brand} ({request.plate_number}) successfully registered by {username}."
+    }
 
 
 @router.patch("/{plate_number}/status", response_model=MessageResponse)
@@ -88,12 +92,13 @@ async def new_status(
     plate_number: str,
     request: StatusUpdateRequest,
     current_user: dict = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     username = current_user["username"]
 
     logger.info(
-        f"[AUDIT] User '{username}' changed status of car {plate_number} to '{request.new_status}'")
+        f"[AUDIT] User '{username}' changed status of car {plate_number} to '{request.new_status}'"
+    )
 
     stmt = select(CarDB).where(CarDB.plate_number == plate_number)
     result = await db.execute(stmt)
@@ -101,24 +106,28 @@ async def new_status(
 
     if not car:
         raise HTTPException(
-            status_code=404, detail=f"Car with plate {plate_number} not found")
+            status_code=404, detail=f"Car with plate {plate_number} not found"
+        )
 
     car.status = request.new_status
 
     await db.commit()
 
-    return {"message": f"Status for car {plate_number} successfully updated to '{request.new_status}'"}
+    return {
+        "message": f"Status for car {plate_number} successfully updated to '{request.new_status}'"
+    }
 
 
 @router.delete("/{plate_number}", response_model=MessageResponse)
 async def delete_car(
     plate_number: str,
     admin_user: dict = Depends(require_admin),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     admin_name = admin_user["username"]
     logger.warning(
-        f"[AUDIT] ADMINISTRATOR '{admin_name}' IS DELETING CAR {plate_number}")
+        f"[AUDIT] ADMINISTRATOR '{admin_name}' IS DELETING CAR {plate_number}"
+    )
 
     stmt = select(CarDB).where(CarDB.plate_number == plate_number)
     result = await db.execute(stmt)
@@ -126,15 +135,18 @@ async def delete_car(
 
     if not car:
         raise HTTPException(
-            status_code=404, detail=f"Car with plate {plate_number} not found")
+            status_code=404, detail=f"Car with plate {plate_number} not found"
+        )
 
     if car.status != "released":
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot delete car. Current status is '{car.status}'. Change status to 'released' first."
+            detail=f"Cannot delete car. Current status is '{car.status}'. Change status to 'released' first.",
         )
 
     await db.delete(car)
     await db.commit()
 
-    return {"message": f"The car {plate_number} has been successfully deleted by the administrator {admin_name}."}
+    return {
+        "message": f"The car {plate_number} has been successfully deleted by the administrator {admin_name}."
+    }
