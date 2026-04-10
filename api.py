@@ -12,7 +12,7 @@ from limiter import limiter
 app = FastAPI()
 
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler) # type: ignore
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore
 app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(cars_router)
@@ -28,17 +28,18 @@ async def value_error_handler(request: Request, exc: ValueError):
             "title": "Validation Error",
             "status": 400,
             "detail": str(exc),
-            "instance": str(request.url)
-        }
+            "instance": str(request.url),
+        },
     )
 
 
 @app.exception_handler(RequestValidationError)
-async def request_validation_error_handler(request: Request, exc: RequestValidationError):
+async def request_validation_error_handler(
+    request: Request, exc: RequestValidationError
+):
     errors = exc.errors()
 
-    clean_detail = "; ".join(
-        [f"{err['loc'][-1]}: {err['msg']}" for err in errors])
+    clean_detail = "; ".join([f"{err['loc'][-1]}: {err['msg']}" for err in errors])
 
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -47,9 +48,8 @@ async def request_validation_error_handler(request: Request, exc: RequestValidat
             "title": "Validation Error",
             "status": 422,
             "detail": str(clean_detail),
-            "instance": str(request.url)
-
-        }
+            "instance": str(request.url),
+        },
     )
 
 
@@ -66,11 +66,11 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             "title": title,
             "status": exc.status_code,
             "detail": exc.detail,
-            "instance": str(request.url)
-        }
+            "instance": str(request.url),
+        },
     )
 
 
-@app.get('/', include_in_schema=False)
+@app.get("/", include_in_schema=False)
 def read_root():
     return RedirectResponse(url="/docs")

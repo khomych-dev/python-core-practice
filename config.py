@@ -7,4 +7,5 @@ class Settings(BaseSettings):
     database_url_test: str | None = None
     model_config = SettingsConfigDict(env_file=".env", extra="forbid")
 
+
 settings = Settings()  # type: ignore
