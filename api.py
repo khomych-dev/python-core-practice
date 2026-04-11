@@ -1,15 +1,34 @@
 from fastapi import FastAPI, status, Request, HTTPException
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
+from starlette.middleware.base import BaseHTTPMiddleware
 from routers.cars import router as cars_router
 import auth
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+import uuid
+from logger import request_id_var, log
 
 from limiter import limiter
 
 app = FastAPI()
+
+
+async def add_request_id_middleware(request: Request, call_next):
+    req_id = str(uuid.uuid4())
+    token = request_id_var.set(req_id)
+
+    log.info("http_request_started", path=request.url.path, method=request.method)
+
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = req_id
+
+    request_id_var.reset(token)
+    return response
+
+
+app.add_middleware(BaseHTTPMiddleware, dispatch=add_request_id_middleware)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore
