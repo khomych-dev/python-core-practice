@@ -44,6 +44,7 @@ jobs:
 
       - name: Run tests
         env:
+          DATABASE_URL: postgresql+asyncpg://user:password@localhost:5432/garage_test_db
           DATABASE_URL_TEST: postgresql+asyncpg://user:password@localhost:5432/garage_test_db
           SECRET_KEY: "ci_test_secret_key"
         run: pytest -v
