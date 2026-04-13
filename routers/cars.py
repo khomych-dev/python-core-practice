@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, HTTPException, Depends
+from fastapi import APIRouter, status, HTTPException, Depends, Request
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -158,4 +158,17 @@ async def delete_car(
 
     return {
         "message": f"The car {plate_number} has been successfully deleted by the administrator {admin_name}."
+    }
+
+
+@router.post("/test-email", response_model=MessageResponse)
+async def test_background_email(email: str, request: Request):
+    redis = request.app.state.redis
+
+    await redis.enqueue_job(
+        "send_notification_task", email, "Ваше авто готове! До сплати 5000 грн."
+    )
+
+    return {
+        "message": f"Request received! An email will be sent to {email} in the background."
     }
