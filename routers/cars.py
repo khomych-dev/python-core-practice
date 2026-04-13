@@ -166,7 +166,7 @@ async def test_background_email(email: str, request: Request):
     redis = request.app.state.redis
 
     await redis.enqueue_job(
-        "send_notification_task", email, "Ваше авто готове! До сплати 5000 грн."
+        "send_notification_task", email, "Your car is ready! Please pay 5,000 UAH."
     )
 
     return {
