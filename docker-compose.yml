@@ -16,6 +16,8 @@ services:
     restart: always
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=postgresql+asyncpg://garage_admin:super_secret_password@db:5432/garage_db
     depends_on:
