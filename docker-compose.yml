@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: garage_admin
+      POSTGRES_PASSWORD: super_secret_password
+      POSTGRES_DB: garage_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build: .
+    restart: always
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://garage_admin:super_secret_password@db:5432/garage_db
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:

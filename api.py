@@ -8,11 +8,23 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 import uuid
-from logger import request_id_var, log
+from contextlib import asynccontextmanager
 
+from database import init_db
+from logger import request_id_var, log
 from limiter import limiter
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    import logging
+
+    logging.info("Checking and creating tables in a database...")
+    await init_db()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 async def add_request_id_middleware(request: Request, call_next):
