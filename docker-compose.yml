@@ -20,8 +20,16 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql+asyncpg://garage_admin:super_secret_password@db:5432/garage_db
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       - db
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
 
 volumes:
   postgres_data:
