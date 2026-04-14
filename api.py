@@ -9,7 +9,10 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 import uuid
 from contextlib import asynccontextmanager
+from arq import create_pool
+from arq.connections import RedisSettings
 
+from config import settings
 from database import init_db
 from logger import request_id_var, log
 from limiter import limiter
@@ -21,7 +24,14 @@ async def lifespan(app: FastAPI):
 
     logging.info("Checking and creating tables in a database...")
     await init_db()
+
+    logging.info("Connecting to Redis for background tasks...")
+    app.state.redis = await create_pool(RedisSettings.from_dsn(settings.redis_url))
+
     yield
+
+    logging.info("Disconnecting from Redis...")
+    await app.state.redis.close()
 
 
 app = FastAPI(lifespan=lifespan)
