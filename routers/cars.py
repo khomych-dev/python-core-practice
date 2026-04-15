@@ -172,3 +172,8 @@ async def test_background_email(email: str, request: Request):
     return {
         "message": f"Request received! An email will be sent to {email} in the background."
     }
+
+
+@router.get("/health")
+async def health_check():
+    return {"status": "ok", "message": "CI/CD Pipeline is working perfectly!"}
