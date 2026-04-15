@@ -83,25 +83,29 @@ async def login_user(
     }
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(
+    token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
+):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
         username: str | None = payload.get("sub")
-        role: str | None = payload.get("role")
-        token_type: str | None = payload.get("type")
 
-        if token_type != "access":
-            raise HTTPException(
-                status_code=401, detail="Invalid token type. Expected access token."
-            )
-
-        if username is None or role is None:
+        if username is None:
             raise HTTPException(
                 status_code=401, detail="Could not validate credentials"
             )
 
-        return {"username": username, "role": role}
+        stmt = select(UserDB).where(UserDB.username == username)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+
+        if user is None:
+            raise HTTPException(
+                status_code=401, detail="User no longer exists or has been fired."
+            )
+
+        return {"username": user.username, "role": user.role}
 
     except jwt.ExpiredSignatureError:
         raise HTTPException(
