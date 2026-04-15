@@ -93,10 +93,10 @@ async def register_new_car(
 async def new_status(
     plate_number: str,
     request: StatusUpdateRequest,
-    current_user: dict = Depends(get_current_user),
+    admin_user: dict = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    username = current_user["username"]
+    username = admin_user["username"]
 
     log.info(
         "car_status_updated",
