@@ -1,16 +1,16 @@
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api import app
 from models import UserDB
-from security import get_password_hash, create_refresh_token
-
+from security import create_refresh_token, get_password_hash
 
 AUTH_PREFIX = "/auth"
 
 
 @pytest.mark.asyncio
-async def test_rate_limiter_login():
+async def test_rate_limiter_login() -> None:
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
@@ -27,8 +27,7 @@ async def test_rate_limiter_login():
 
 
 @pytest.mark.asyncio
-async def test_refresh_token_success(db_session):
-    """Перевіряємо, чи працює обмін довгого токена на новий короткий"""
+async def test_refresh_token_success(db_session: AsyncSession) -> None:
 
     test_user = UserDB(
         username="refresh_tester",

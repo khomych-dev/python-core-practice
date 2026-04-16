@@ -1,11 +1,13 @@
-from fastapi import APIRouter, status, HTTPException, Depends, Request
-from pydantic import BaseModel, Field, field_validator
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from logger import log
+from typing import Annotated, Any
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field, field_validator
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from auth import get_current_user, get_db, require_admin
+from logger import log
 from models import CarDB
-from auth import get_current_user, require_admin, get_db
 
 router = APIRouter(prefix="/api/v1/cars")
 
@@ -19,7 +21,6 @@ class CarRegisterRequest(BaseModel):
     @classmethod
     def format_plate(cls, value: str) -> str:
         cleaned = value.replace(" ", "").upper()
-
         return cleaned
 
 
@@ -33,8 +34,9 @@ class MessageResponse(BaseModel):
 
 @router.get("/")
 async def all_cars(
-    current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)
-):
+    current_user: Annotated[dict[str, Any], Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> list[dict[str, Any]]:
     stmt = select(CarDB)
     result = await db.execute(stmt)
     cars = result.scalars().all()
@@ -54,9 +56,9 @@ async def all_cars(
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=MessageResponse)
 async def register_new_car(
     request: CarRegisterRequest,
-    current_user: dict = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
+    current_user: Annotated[dict[str, Any], Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MessageResponse:
     username = current_user["username"]
     log.info(
         "car_registration_started",
@@ -84,18 +86,21 @@ async def register_new_car(
     db.add(new_car)
     await db.commit()
 
-    return {
-        "message": f"Vehicle {request.brand} ({request.plate_number}) successfully registered by {username}."
-    }
+    return MessageResponse(
+        message=(
+            f"Vehicle {request.brand} ({request.plate_number}) "
+            f"successfully registered by {username}."
+        )
+    )
 
 
 @router.patch("/{plate_number}/status", response_model=MessageResponse)
 async def new_status(
     plate_number: str,
     request: StatusUpdateRequest,
-    admin_user: dict = Depends(require_admin),
-    db: AsyncSession = Depends(get_db),
-):
+    admin_user: Annotated[dict[str, Any], Depends(require_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MessageResponse:
     username = admin_user["username"]
 
     log.info(
@@ -116,20 +121,22 @@ async def new_status(
         )
 
     car.status = request.new_status
-
     await db.commit()
 
-    return {
-        "message": f"Status for car {plate_number} successfully updated to '{request.new_status}'"
-    }
+    return MessageResponse(
+        message=(
+            f"Status for car {plate_number} successfully "
+            f"updated to '{request.new_status}'"
+        )
+    )
 
 
 @router.delete("/{plate_number}", response_model=MessageResponse)
 async def delete_car(
     plate_number: str,
-    admin_user: dict = Depends(require_admin),
-    db: AsyncSession = Depends(get_db),
-):
+    admin_user: Annotated[dict[str, Any], Depends(require_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MessageResponse:
     admin_name = admin_user["username"]
     log.warning(
         "car_deleted",
@@ -150,30 +157,23 @@ async def delete_car(
     if car.status != "released":
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot delete car. Current status is '{car.status}'. Change status to 'released' first.",
+            detail=(
+                f"Cannot delete car. Current status is '{car.status}'. "
+                "Change status to 'released' first."
+            ),
         )
 
     await db.delete(car)
     await db.commit()
 
-    return {
-        "message": f"The car {plate_number} has been successfully deleted by the administrator {admin_name}."
-    }
-
-
-@router.post("/test-email", response_model=MessageResponse)
-async def test_background_email(email: str, request: Request):
-    redis = request.app.state.redis
-
-    await redis.enqueue_job(
-        "send_notification_task", email, "Your car is ready! Please pay 5,000 UAH."
+    return MessageResponse(
+        message=(
+            f"The car {plate_number} has been successfully deleted "
+            f"by the administrator {admin_name}."
+        )
     )
-
-    return {
-        "message": f"Request received! An email will be sent to {email} in the background."
-    }
 
 
 @router.get("/health")
-async def health_check():
+async def health_check() -> dict[str, str]:
     return {"status": "ok", "message": "CI/CD Pipeline is working perfectly!"}

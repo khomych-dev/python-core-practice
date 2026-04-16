@@ -25,6 +25,11 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -40,11 +45,20 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: uv pip install --system -r requirements.txt
+        run: |
+          uv pip install --system -r requirements.txt
+          uv pip install --system ruff mypy pytest pytest-asyncio httpx
+
+      - name: Run Linters
+        run: |
+          ruff check .
+          ruff format --check .
+          mypy .
 
       - name: Run tests
         env:
           DATABASE_URL: postgresql+asyncpg://user:password@localhost:5432/garage_test_db
           DATABASE_URL_TEST: postgresql+asyncpg://user:password@localhost:5432/garage_test_db
+          REDIS_URL: redis://localhost:6379/0
           SECRET_KEY: "ci_test_secret_key"
         run: pytest -v
