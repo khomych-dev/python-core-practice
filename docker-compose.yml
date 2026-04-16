@@ -23,6 +23,19 @@ services:
       - db
       - redis
 
+  worker:
+    build: .
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://garage_admin:super_secret_password@db:5432/garage_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    command: ["arq", "worker.WorkerSettings"]
+
   redis:
     image: redis:7-alpine
     restart: always

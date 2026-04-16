@@ -1,22 +1,24 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
-from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-
-from database import AsyncSessionLocal
-from models import UserDB
-from security import (
-    get_password_hash,
-    verify_password,
-    create_access_token,
-    create_refresh_token,
-    SECRET_KEY,
-    ALGORITHM,
-)
-from limiter import limiter
+from collections.abc import AsyncGenerator
+from typing import Annotated, Any
 
 import jwt
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from database import AsyncSessionLocal
+from limiter import limiter
+from models import UserDB
+from security import (
+    ALGORITHM,
+    SECRET_KEY,
+    create_access_token,
+    create_refresh_token,
+    get_password_hash,
+    verify_password,
+)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -32,7 +34,7 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
 
-async def get_db():
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         yield session
 
@@ -40,8 +42,10 @@ async def get_db():
 @router.post("/register", status_code=201)
 @limiter.limit("5/minute")
 async def register_user(
-    request: Request, user: UserCreate, db: AsyncSession = Depends(get_db)
-):
+    request: Request,
+    user: UserCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, str]:
     stmt = select(UserDB).where(UserDB.username == user.username)
     result = await db.execute(stmt)
     if result.scalar_one_or_none():
@@ -63,9 +67,9 @@ async def register_user(
 @limiter.limit("5/minute")
 async def login_user(
     request: Request,
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = Depends(get_db),
-):
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, str]:
     stmt = select(UserDB).where(UserDB.username == form_data.username)
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
@@ -84,8 +88,9 @@ async def login_user(
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
-):
+    token: Annotated[str, Depends(oauth2_scheme)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, Any]:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
@@ -107,15 +112,19 @@ async def get_current_user(
 
         return {"username": user.username, "role": user.role}
 
-    except jwt.ExpiredSignatureError:
+    except jwt.ExpiredSignatureError as err:
         raise HTTPException(
             status_code=401, detail="Token expired. Please log in again."
-        )
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token. Access denied.")
+        ) from err
+    except jwt.InvalidTokenError as err:
+        raise HTTPException(
+            status_code=401, detail="Invalid token. Access denied."
+        ) from err
 
 
-async def require_admin(current_user: dict = Depends(get_current_user)):
+async def require_admin(
+    current_user: Annotated[dict[str, Any], Depends(get_current_user)],
+) -> dict[str, Any]:
     if current_user.get("role") != "admin":
         raise HTTPException(
             status_code=403, detail="Operation not permitted. Admins only."
@@ -125,8 +134,9 @@ async def require_admin(current_user: dict = Depends(get_current_user)):
 
 @router.post("/refresh")
 async def refresh_token_endpoint(
-    request: RefreshTokenRequest, db: AsyncSession = Depends(get_db)
-):
+    request: RefreshTokenRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, str]:
     token = request.refresh_token
 
     try:
@@ -150,9 +160,11 @@ async def refresh_token_endpoint(
 
         return {"access_token": new_access_token, "token_type": "bearer"}
 
-    except jwt.ExpiredSignatureError:
+    except jwt.ExpiredSignatureError as err:
         raise HTTPException(
             status_code=401, detail="Refresh token expired. Please log in again."
-        )
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Could not validate credentials")
+        ) from err
+    except jwt.InvalidTokenError as err:
+        raise HTTPException(
+            status_code=401, detail="Could not validate credentials"
+        ) from err

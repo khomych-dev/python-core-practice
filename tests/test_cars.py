@@ -1,13 +1,14 @@
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api import app
-from models import UserDB
 from auth import get_current_user
+from models import UserDB
 
 
 @pytest.mark.asyncio
-async def test_get_cars_unauthorized():
+async def test_get_cars_unauthorized() -> None:
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
@@ -21,12 +22,12 @@ async def test_get_cars_unauthorized():
         assert data["detail"] == "Not authenticated"
 
 
-async def mock_mechanic_user():
+async def mock_mechanic_user() -> dict[str, str]:
     return {"username": "roki_test", "role": "mechanic"}
 
 
 @pytest.mark.asyncio
-async def test_register_car_success(db_session):
+async def test_register_car_success(db_session: AsyncSession) -> None:
     app.dependency_overrides[get_current_user] = mock_mechanic_user
 
     test_user = UserDB(
