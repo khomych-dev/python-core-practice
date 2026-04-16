@@ -4,6 +4,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.middleware.base import BaseHTTPMiddleware
 from routers.cars import router as cars_router
 import auth
+import time
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -20,17 +21,15 @@ from limiter import limiter
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    import logging
-
-    logging.info("Checking and creating tables in a database...")
+    log.info("Checking and creating tables in a database...")
     await init_db()
 
-    logging.info("Connecting to Redis for background tasks...")
+    log.info("Connecting to Redis for background tasks...")
     app.state.redis = await create_pool(RedisSettings.from_dsn(settings.redis_url))
 
     yield
 
-    logging.info("Disconnecting from Redis...")
+    log.info("Disconnecting from Redis...")
     await app.state.redis.close()
 
 
@@ -40,12 +39,22 @@ app = FastAPI(lifespan=lifespan)
 async def add_request_id_middleware(request: Request, call_next):
     req_id = str(uuid.uuid4())
     token = request_id_var.set(req_id)
+    start_time = time.perf_counter()
 
     log.info("http_request_started", path=request.url.path, method=request.method)
 
     response = await call_next(request)
-    response.headers["X-Request-ID"] = req_id
 
+    process_time = time.perf_counter() - start_time
+    log.info(
+        "http_request_finished",
+        path=request.url.path,
+        method=request.method,
+        status_code=response.status_code,
+        duration=round(process_time, 4),
+    )
+
+    response.headers["X-Request-ID"] = req_id
     request_id_var.reset(token)
     return response
 
