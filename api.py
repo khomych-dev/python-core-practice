@@ -2,6 +2,7 @@ import time
 import uuid
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from typing import Any, cast
 
 from arq import create_pool
 from arq.connections import RedisSettings
@@ -66,7 +67,7 @@ async def add_request_id_middleware(
 app.add_middleware(BaseHTTPMiddleware, dispatch=add_request_id_middleware)
 
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # pyright: ignore
+app.add_exception_handler(RateLimitExceeded, cast(Any, _rate_limit_exceeded_handler))
 app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(cars_router)
