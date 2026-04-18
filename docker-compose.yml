@@ -42,3 +42,17 @@ services:
 
 volumes:
   postgres_data:
+
+prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    restart: always
+
+grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    restart: always
