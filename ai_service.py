@@ -4,7 +4,9 @@ import instructor
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field
 
-client = instructor.from_openai(AsyncOpenAI())
+from config import settings
+
+client = instructor.from_openai(AsyncOpenAI(api_key=settings.openai_api_key))
 
 
 class RepairReport(BaseModel):
