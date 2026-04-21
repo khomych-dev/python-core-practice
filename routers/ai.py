@@ -41,8 +41,8 @@ async def process_repair_text(
         raise HTTPException(
             status_code=404,
             detail=(
-                f"ШІ розпізнав номер {repair_data.license_plate}, "
-                "але такої машини немає в гаражі."
+                f"The AI recognized the number {repair_data.license_plate}, "
+                "but there isn't a car like that in the garage."
             ),
         )
 
