@@ -41,22 +41,20 @@ async def process_repair_text(
         raise HTTPException(
             status_code=404,
             detail=(
-                "The AI recognized the license plate number "
-                f"{repair_data.license_plate}, but there is no such car in the garage."
+                f"ШІ розпізнав номер {repair_data.license_plate}, "
+                "але такої машини немає в гаражі."
             ),
         )
 
     if repair_data.is_completed:
-        car.status = "released"
-        await db.commit()
         msg = (
-            f"The repair is complete. The status of vehicle {car.plate_number} "
-            "has been automatically updated to 'released'."
+            f"The report was generated successfully. Vehicle {car.plate_number} "
+            "can be forwarded to the administrator for release from the garage."
         )
     else:
         msg = (
-            "The data has been recognized, but the repair is still in progress. "
-            f"The status of {car.plate_number} remains unchanged."
+            "Data recognized. "
+            f"Repairs on the car {car.plate_number} are still in progress."
         )
 
     return AIRepairResponse(message=msg, extracted_data=repair_data)
