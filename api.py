@@ -20,6 +20,7 @@ from config import settings
 from database import init_db
 from limiter import limiter
 from logger import log, request_id_var
+from routers.ai import router as ai_router
 from routers.cars import router as cars_router
 
 
@@ -75,6 +76,7 @@ app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(cars_router)
 app.include_router(auth.router)
+app.include_router(ai_router)
 
 
 @app.exception_handler(ValueError)

@@ -61,4 +61,5 @@ jobs:
           DATABASE_URL_TEST: postgresql+asyncpg://user:password@localhost:5432/garage_test_db
           REDIS_URL: redis://localhost:6379/0
           SECRET_KEY: "ci_test_secret_key"
+          OPENAI_API_KEY: "sk-dummy-test-key-for-github-actions"
         run: pytest -v
