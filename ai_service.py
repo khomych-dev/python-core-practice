@@ -85,8 +85,8 @@ async def run_manager_agent(prompt: str, db: AsyncSession) -> str:
 
     response = await agent_client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=messages,  # pyright: ignore
-        tools=tools,  # pyright: ignore
+        messages=cast(Any, messages),
+        tools=cast(Any, tools),
         tool_choice="auto",
     )
 
@@ -114,8 +114,7 @@ async def run_manager_agent(prompt: str, db: AsyncSession) -> str:
             )
 
             final_response = await agent_client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=messages,  # pyright: ignore
+                model="gpt-4o-mini", messages=cast(Any, messages)
             )
 
             content = final_response.choices[0].message.content
