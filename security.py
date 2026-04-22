@@ -18,9 +18,7 @@ def get_password_hash(password: str) -> str:
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return bool(
-        bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
-    )
+    return bool(bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8")))
 
 
 def create_access_token(data: dict[str, Any]) -> str:

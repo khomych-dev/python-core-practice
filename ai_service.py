@@ -11,28 +11,16 @@ client = instructor.from_openai(AsyncOpenAI(api_key=settings.openai_api_key))
 
 class RepairReport(BaseModel):
     license_plate: str = Field(
-        description=(
-            "License plate number of the vehicle. "
-            "Must be uppercase, no spaces. Example: AA1234BB"
-        )
+        description=("License plate number of the vehicle. Must be uppercase, no spaces. Example: AA1234BB")
     )
-    work_description: str = Field(
-        description="Brief description of the work performed."
-    )
+    work_description: str = Field(description="Brief description of the work performed.")
     parts_used: list[str] = Field(
         default_factory=list,
         description="List of spare parts used during the repair. Empty list if none.",
     )
-    total_cost: float = Field(
-        description=(
-            "Total cost of the repair in local currency. If not mentioned, use 0.0"
-        )
-    )
+    total_cost: float = Field(description=("Total cost of the repair in local currency. If not mentioned, use 0.0"))
     is_completed: bool = Field(
-        description=(
-            "True if the mechanic implies the work is done. "
-            "False if parts are ordered or work is pending."
-        )
+        description=("True if the mechanic implies the work is done. False if parts are ordered or work is pending.")
     )
 
 

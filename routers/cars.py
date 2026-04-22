@@ -87,10 +87,7 @@ async def register_new_car(
     await db.commit()
 
     return MessageResponse(
-        message=(
-            f"Vehicle {request.brand} ({request.plate_number}) "
-            f"successfully registered by {username}."
-        )
+        message=(f"Vehicle {request.brand} ({request.plate_number}) successfully registered by {username}.")
     )
 
 
@@ -116,19 +113,12 @@ async def new_status(
     car = result.scalar_one_or_none()
 
     if not car:
-        raise HTTPException(
-            status_code=404, detail=f"Car with plate {plate_number} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Car with plate {plate_number} not found")
 
     car.status = request.new_status
     await db.commit()
 
-    return MessageResponse(
-        message=(
-            f"Status for car {plate_number} successfully "
-            f"updated to '{request.new_status}'"
-        )
-    )
+    return MessageResponse(message=(f"Status for car {plate_number} successfully updated to '{request.new_status}'"))
 
 
 @router.delete("/{plate_number}", response_model=MessageResponse)
@@ -150,27 +140,19 @@ async def delete_car(
     car = result.scalar_one_or_none()
 
     if not car:
-        raise HTTPException(
-            status_code=404, detail=f"Car with plate {plate_number} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Car with plate {plate_number} not found")
 
     if car.status != "released":
         raise HTTPException(
             status_code=400,
-            detail=(
-                f"Cannot delete car. Current status is '{car.status}'. "
-                "Change status to 'released' first."
-            ),
+            detail=(f"Cannot delete car. Current status is '{car.status}'. Change status to 'released' first."),
         )
 
     await db.delete(car)
     await db.commit()
 
     return MessageResponse(
-        message=(
-            f"The car {plate_number} has been successfully deleted "
-            f"by the administrator {admin_name}."
-        )
+        message=(f"The car {plate_number} has been successfully deleted by the administrator {admin_name}.")
     )
 
 

@@ -20,6 +20,7 @@ from config import settings
 from database import init_db
 from limiter import limiter
 from logger import log, request_id_var
+from routers import repairs
 from routers.ai import router as ai_router
 from routers.cars import router as cars_router
 
@@ -43,9 +44,7 @@ app = FastAPI(lifespan=lifespan)
 Instrumentator().instrument(app).expose(app)
 
 
-async def add_request_id_middleware(
-    request: Request, call_next: Callable[[Request], Awaitable[Response]]
-) -> Response:
+async def add_request_id_middleware(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
     req_id = str(uuid.uuid4())
     token = request_id_var.set(req_id)
     start_time = time.perf_counter()
@@ -77,6 +76,7 @@ app.add_middleware(SlowAPIMiddleware)
 app.include_router(cars_router)
 app.include_router(auth.router)
 app.include_router(ai_router)
+app.include_router(repairs.router)
 
 
 @app.exception_handler(ValueError)
@@ -94,9 +94,7 @@ async def value_error_handler(request: Request, exc: ValueError) -> JSONResponse
 
 
 @app.exception_handler(RequestValidationError)
-async def request_validation_error_handler(
-    request: Request, exc: RequestValidationError
-) -> JSONResponse:
+async def request_validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     errors = exc.errors()
 
     clean_detail = "; ".join([f"{err['loc'][-1]}: {err['msg']}" for err in errors])
