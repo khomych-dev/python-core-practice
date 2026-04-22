@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import ForeignKey, String, text
+from sqlalchemy import DateTime, ForeignKey, String, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -39,5 +39,5 @@ class RepairHistoryDB(Base):
     raw_text: Mapped[str] = mapped_column(nullable=False)
     ai_summary: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        default=lambda: datetime.now(UTC), server_default=text("TIMEZONE('utc', now())")
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), server_default=text("TIMEZONE('utc', now())")
     )
