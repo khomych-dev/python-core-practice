@@ -35,7 +35,7 @@ dev = [
 ]
 
 [tool.ruff]
-line-length = 88
+line-length = 120
 lint.select = ["E", "F", "I", "B", "UP"]
 lint.ignore = []
 
