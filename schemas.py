@@ -20,3 +20,11 @@ class RepairHistoryResponse(RepairHistoryBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AgentRequest(BaseModel):
+    prompt: str
+
+
+class AgentResponse(BaseModel):
+    answer: str
