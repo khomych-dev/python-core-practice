@@ -1,12 +1,17 @@
-from typing import cast
+import json
+from typing import Any, cast
 
 import instructor
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
 
+import ai_tools
 from config import settings
 
-client = instructor.from_openai(AsyncOpenAI(api_key=settings.openai_api_key))
+instructor_client = instructor.from_openai(AsyncOpenAI(api_key=settings.openai_api_key))
+
+agent_client = AsyncOpenAI(api_key=settings.openai_api_key)
 
 
 class RepairReport(BaseModel):
@@ -25,7 +30,7 @@ class RepairReport(BaseModel):
 
 
 async def extract_repair_data(mechanic_text: str) -> RepairReport:
-    report = await client.chat.completions.create(
+    report = await instructor_client.chat.completions.create(
         model="gpt-4o-mini",
         response_model=RepairReport,
         messages=[
@@ -44,3 +49,75 @@ async def extract_repair_data(mechanic_text: str) -> RepairReport:
         temperature=0.1,
     )
     return cast(RepairReport, report)
+
+
+async def run_manager_agent(prompt: str, db: AsyncSession) -> str:
+    tools: list[dict[str, Any]] = [
+        {
+            "type": "function",
+            "function": {
+                "name": "get_cars",
+                "description": "Retrieves a list of cars from the database. "
+                "Use this to answer questions about cars, their brands, owners, or statuses.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "status": {
+                            "type": "string",
+                            "description": "Optional filter for car status. "
+                            "Valid values are usually 'in_garage' or 'released'.",
+                        }
+                    },
+                    "required": [],
+                },
+            },
+        }
+    ]
+
+    messages: list[dict[str, Any]] = [
+        {
+            "role": "system",
+            "content": "You are a helpful garage manager assistant. "
+            "Use the supplied tools to answer questions about the garage. Provide concise and accurate answers.",
+        },
+        {"role": "user", "content": prompt},
+    ]
+
+    response = await agent_client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=cast(Any, messages),
+        tools=cast(Any, tools),
+        tool_choice="auto",
+    )
+
+    response_message = response.choices[0].message
+
+    if response_message.tool_calls:
+        tool_call = response_message.tool_calls[0]
+
+        tool_call_dict = tool_call.model_dump()
+
+        if tool_call_dict["function"]["name"] == "get_cars":
+            args = json.loads(tool_call_dict["function"]["arguments"])
+            status_filter = args.get("status")
+
+            cars_data = await ai_tools.get_cars_in_garage(db, status=status_filter)
+
+            messages.append(response_message.model_dump(exclude_none=True))
+
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tool_call_dict["id"],
+                    "content": json.dumps(cars_data, ensure_ascii=False),
+                }
+            )
+
+            final_response = await agent_client.chat.completions.create(
+                model="gpt-4o-mini", messages=cast(Any, messages)
+            )
+
+            content = final_response.choices[0].message.content
+            return content if content else "The AI was unable to generate a response."
+
+    return response_message.content if response_message.content else "No response."

@@ -5,9 +5,10 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ai_service import RepairReport, extract_repair_data
-from auth import get_current_user, get_db
+from ai_service import RepairReport, extract_repair_data, run_manager_agent
+from auth import get_current_user, get_db, require_admin
 from models import CarDB
+from schemas import AgentRequest, AgentResponse
 
 router = APIRouter(prefix="/api/v1/ai", tags=["AI Integration"])
 
@@ -55,3 +56,14 @@ async def process_repair_text(
         msg = f"Data recognized. Repairs on the car {car.plate_number} are still in progress."
 
     return AIRepairResponse(message=msg, extracted_data=repair_data)
+
+
+@router.post("/manager-insight", response_model=AgentResponse)
+async def manager_insight(
+    request: AgentRequest,
+    admin_user: Annotated[dict[str, Any], Depends(require_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Any:
+    ai_answer = await run_manager_agent(request.prompt, db)
+
+    return AgentResponse(answer=ai_answer)
