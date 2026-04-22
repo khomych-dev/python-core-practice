@@ -53,9 +53,7 @@ async def register_user(
 
     hashed_pwd = get_password_hash(user.password)
 
-    new_user = UserDB(
-        username=user.username, hashed_password=hashed_pwd, role="mechanic"
-    )
+    new_user = UserDB(username=user.username, hashed_password=hashed_pwd, role="mechanic")
 
     db.add(new_user)
     await db.commit()
@@ -97,38 +95,28 @@ async def get_current_user(
         username: str | None = payload.get("sub")
 
         if username is None:
-            raise HTTPException(
-                status_code=401, detail="Could not validate credentials"
-            )
+            raise HTTPException(status_code=401, detail="Could not validate credentials")
 
         stmt = select(UserDB).where(UserDB.username == username)
         result = await db.execute(stmt)
         user = result.scalar_one_or_none()
 
         if user is None:
-            raise HTTPException(
-                status_code=401, detail="User no longer exists or has been fired."
-            )
+            raise HTTPException(status_code=401, detail="User no longer exists or has been fired.")
 
         return {"username": user.username, "role": user.role}
 
     except jwt.ExpiredSignatureError as err:
-        raise HTTPException(
-            status_code=401, detail="Token expired. Please log in again."
-        ) from err
+        raise HTTPException(status_code=401, detail="Token expired. Please log in again.") from err
     except jwt.InvalidTokenError as err:
-        raise HTTPException(
-            status_code=401, detail="Invalid token. Access denied."
-        ) from err
+        raise HTTPException(status_code=401, detail="Invalid token. Access denied.") from err
 
 
 async def require_admin(
     current_user: Annotated[dict[str, Any], Depends(get_current_user)],
 ) -> dict[str, Any]:
     if current_user.get("role") != "admin":
-        raise HTTPException(
-            status_code=403, detail="Operation not permitted. Admins only."
-        )
+        raise HTTPException(status_code=403, detail="Operation not permitted. Admins only.")
     return current_user
 
 
@@ -154,17 +142,11 @@ async def refresh_token_endpoint(
         if not user:
             raise HTTPException(status_code=401, detail="User no longer exists")
 
-        new_access_token = create_access_token(
-            data={"sub": user.username, "role": user.role}
-        )
+        new_access_token = create_access_token(data={"sub": user.username, "role": user.role})
 
         return {"access_token": new_access_token, "token_type": "bearer"}
 
     except jwt.ExpiredSignatureError as err:
-        raise HTTPException(
-            status_code=401, detail="Refresh token expired. Please log in again."
-        ) from err
+        raise HTTPException(status_code=401, detail="Refresh token expired. Please log in again.") from err
     except jwt.InvalidTokenError as err:
-        raise HTTPException(
-            status_code=401, detail="Could not validate credentials"
-        ) from err
+        raise HTTPException(status_code=401, detail="Could not validate credentials") from err

@@ -52,9 +52,6 @@ async def process_repair_text(
             "can be forwarded to the administrator for release from the garage."
         )
     else:
-        msg = (
-            "Data recognized. "
-            f"Repairs on the car {car.plate_number} are still in progress."
-        )
+        msg = f"Data recognized. Repairs on the car {car.plate_number} are still in progress."
 
     return AIRepairResponse(message=msg, extracted_data=repair_data)

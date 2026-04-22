@@ -9,9 +9,7 @@ from models import UserDB
 
 @pytest.mark.asyncio
 async def test_get_cars_unauthorized() -> None:
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.get("/api/v1/cars/")
 
         assert response.status_code == 401
@@ -30,15 +28,11 @@ async def mock_mechanic_user() -> dict[str, str]:
 async def test_register_car_success(db_session: AsyncSession) -> None:
     app.dependency_overrides[get_current_user] = mock_mechanic_user
 
-    test_user = UserDB(
-        username="roki_test", hashed_password="fake_password", role="mechanic"
-    )
+    test_user = UserDB(username="roki_test", hashed_password="fake_password", role="mechanic")
     db_session.add(test_user)
     await db_session.commit()
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.post(
             "/api/v1/cars/",
             json={"plate_number": "AA7777BB", "brand": "BMW", "owner": "Ivan"},

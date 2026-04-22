@@ -11,13 +11,9 @@ AUTH_PREFIX = "/auth"
 
 @pytest.mark.asyncio
 async def test_rate_limiter_login() -> None:
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         for i in range(6):
-            response = await ac.post(
-                f"{AUTH_PREFIX}/login", data={"username": "fake", "password": "fake"}
-            )
+            response = await ac.post(f"{AUTH_PREFIX}/login", data={"username": "fake", "password": "fake"})
 
             if i < 5:
                 assert response.status_code in [400, 422]
@@ -39,12 +35,8 @@ async def test_refresh_token_success(db_session: AsyncSession) -> None:
 
     valid_refresh_token = create_refresh_token(data={"sub": "refresh_tester"})
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
-        response = await ac.post(
-            f"{AUTH_PREFIX}/refresh", json={"refresh_token": valid_refresh_token}
-        )
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.post(f"{AUTH_PREFIX}/refresh", json={"refresh_token": valid_refresh_token})
 
     assert response.status_code == 200
     data = response.json()

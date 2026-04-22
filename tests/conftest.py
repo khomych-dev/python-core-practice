@@ -18,9 +18,7 @@ if TEST_DB_URL is None:
     raise ValueError("CRITICAL ERROR: DATABASE_URL_TEST not found in the .env file!")
 
 engine_test = create_async_engine(TEST_DB_URL, poolclass=NullPool)
-TestingSessionLocal = async_sessionmaker(
-    engine_test, class_=AsyncSession, expire_on_commit=False
-)
+TestingSessionLocal = async_sessionmaker(engine_test, class_=AsyncSession, expire_on_commit=False)
 
 
 @pytest_asyncio.fixture(autouse=True)

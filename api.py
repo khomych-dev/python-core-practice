@@ -43,9 +43,7 @@ app = FastAPI(lifespan=lifespan)
 Instrumentator().instrument(app).expose(app)
 
 
-async def add_request_id_middleware(
-    request: Request, call_next: Callable[[Request], Awaitable[Response]]
-) -> Response:
+async def add_request_id_middleware(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
     req_id = str(uuid.uuid4())
     token = request_id_var.set(req_id)
     start_time = time.perf_counter()
@@ -94,9 +92,7 @@ async def value_error_handler(request: Request, exc: ValueError) -> JSONResponse
 
 
 @app.exception_handler(RequestValidationError)
-async def request_validation_error_handler(
-    request: Request, exc: RequestValidationError
-) -> JSONResponse:
+async def request_validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     errors = exc.errors()
 
     clean_detail = "; ".join([f"{err['loc'][-1]}: {err['msg']}" for err in errors])
