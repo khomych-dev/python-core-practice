@@ -57,15 +57,10 @@ async def run_manager_agent(prompt: str, db: AsyncSession) -> str:
             "type": "function",
             "function": {
                 "name": "get_cars",
-                "description": "Get car details like brand, owner, and current status.",
+                "description": "Get car details (owner, brand, status).",
                 "parameters": {
                     "type": "object",
-                    "properties": {
-                        "status": {
-                            "type": "string",
-                            "description": "Optional filter: 'in_garage' or 'released'.",
-                        }
-                    },
+                    "properties": {"status": {"type": "string", "description": "Filter by 'in_garage' or 'released'."}},
                     "required": [],
                 },
             },
@@ -74,12 +69,10 @@ async def run_manager_agent(prompt: str, db: AsyncSession) -> str:
             "type": "function",
             "function": {
                 "name": "get_repair_history",
-                "description": "Get the detailed repair history for a specific car by its plate number.",
+                "description": "Get detailed repair history for a specific car.",
                 "parameters": {
                     "type": "object",
-                    "properties": {
-                        "plate_number": {"type": "string", "description": "The car plate number (e.g., BC7777CB)."}
-                    },
+                    "properties": {"plate_number": {"type": "string", "description": "Plate number, e.g., BC7777CB"}},
                     "required": ["plate_number"],
                 },
             },
@@ -89,8 +82,15 @@ async def run_manager_agent(prompt: str, db: AsyncSession) -> str:
     messages: list[dict[str, Any]] = [
         {
             "role": "system",
-            "content": "You are a helpful garage manager assistant. Use the supplied tools to answer questions. "
-            "If you need to know about a specific car's history, use get_repair_history.",
+            "content": (
+                "You are the general manager of the service station. "
+                "Your goal is to provide the MOST comprehensive answers possible."
+                "RULE 1: If you are asked about a car, you MUST use the 'get_cars' "
+                "tool to find out the owner and status."
+                "RULE 2: After that, you MUST use the 'get_repair_history' "
+                "tool to find out the full repair history of this car."
+                "Only after gathering data from BOTH tools should you formulate your final answer."
+            ),
         },
         {"role": "user", "content": prompt},
     ]
@@ -105,26 +105,28 @@ async def run_manager_agent(prompt: str, db: AsyncSession) -> str:
     response_message = response.choices[0].message
 
     if response_message.tool_calls:
-        tool_call = response_message.tool_calls[0]
-        tool_call_dict = tool_call.model_dump()
-        func_name = tool_call_dict["function"]["name"]
-        args = json.loads(tool_call_dict["function"]["arguments"])
-
-        if func_name == "get_cars":
-            result_data: Any = await ai_tools.get_cars_in_garage(db, status=args.get("status"))
-        elif func_name == "get_repair_history":
-            result_data = await ai_tools.get_repair_history(db, plate_number=args.get("plate_number"))
-        else:
-            result_data = [{"error": "Unknown function"}]
-
         messages.append(response_message.model_dump(exclude_none=True))
-        messages.append(
-            {
-                "role": "tool",
-                "tool_call_id": tool_call_dict["id"],
-                "content": json.dumps(result_data, ensure_ascii=False),
-            }
-        )
+
+        for tool_call in response_message.tool_calls:
+            tool_call_dict = tool_call.model_dump()
+
+            func_name = tool_call_dict["function"]["name"]
+            args = json.loads(tool_call_dict["function"]["arguments"])
+
+            if func_name == "get_cars":
+                result = await ai_tools.get_cars_in_garage(db, status=args.get("status"))
+            elif func_name == "get_repair_history":
+                result = await ai_tools.get_repair_history(db, plate_number=args.get("plate_number"))
+            else:
+                result = [{"error": f"Unknown function: {func_name}"}]
+
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tool_call_dict["id"],
+                    "content": json.dumps(result, ensure_ascii=False),
+                }
+            )
 
         final_response = await agent_client.chat.completions.create(model="gpt-4o-mini", messages=cast(Any, messages))
 
