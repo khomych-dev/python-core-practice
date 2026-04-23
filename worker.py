@@ -11,10 +11,16 @@ from logger import log
 from models import RepairHistoryDB
 
 
-async def generate_invoice_task(ctx: dict[str, Any], plate_number: str) -> bool:
+async def generate_invoice_task(ctx: dict[str, Any], raw_plate_number: str) -> bool:
+    plate_number = raw_plate_number.strip()
     log.info("invoice_generation_started", car=plate_number)
 
     async with AsyncSessionLocal() as db:
+        debug_stmt = select(RepairHistoryDB.car_plate_number)
+        debug_result = await db.execute(debug_stmt)
+        all_plates = debug_result.scalars().all()
+        log.info("debug_all_plates_in_db", plates=all_plates)
+
         stmt = select(RepairHistoryDB).where(RepairHistoryDB.car_plate_number == plate_number)
         result = await db.execute(stmt)
         records = result.scalars().all()
