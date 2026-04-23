@@ -60,7 +60,10 @@ async def run_manager_agent(prompt: str, db: AsyncSession) -> str:
                 "description": "Get car details (owner, brand, status).",
                 "parameters": {
                     "type": "object",
-                    "properties": {"status": {"type": "string", "description": "Filter by 'in_garage' or 'released'."}},
+                    "properties": {
+                        "status": {"type": "string", "description": "Filter by 'in_garage' or 'released'."},
+                        "plate_number": {"type": "string", "description": "Filter by plate number, e.g., BC7777CB"},
+                    },
                     "required": [],
                 },
             },
@@ -83,38 +86,39 @@ async def run_manager_agent(prompt: str, db: AsyncSession) -> str:
         {
             "role": "system",
             "content": (
-                "You are the general manager of the service station. "
-                "Your goal is to provide the MOST comprehensive answers possible."
-                "RULE 1: If you are asked about a car, you MUST use the 'get_cars' "
-                "tool to find out the owner and status."
-                "RULE 2: After that, you MUST use the 'get_repair_history' "
-                "tool to find out the full repair history of this car."
-                "Only after gathering data from BOTH tools should you formulate your final answer."
+                "You're the service center manager. Please provide as much detail as possible."
+                "If someone asks about a car, be sure to check both its status (get_cars) "
+                "and its repair history (get_repair_history)."
             ),
         },
         {"role": "user", "content": prompt},
     ]
 
-    response = await agent_client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=cast(Any, messages),
-        tools=cast(Any, tools),
-        tool_choice="auto",
-    )
+    max_iterations = 5
+    for _ in range(max_iterations):
+        response = await agent_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=cast(Any, messages),
+            tools=cast(Any, tools),
+            tool_choice="auto",
+        )
 
-    response_message = response.choices[0].message
+        response_message = response.choices[0].message
 
-    if response_message.tool_calls:
+        if not response_message.tool_calls:
+            return response_message.content or "No response."
+
         messages.append(response_message.model_dump(exclude_none=True))
 
         for tool_call in response_message.tool_calls:
             tool_call_dict = tool_call.model_dump()
-
             func_name = tool_call_dict["function"]["name"]
             args = json.loads(tool_call_dict["function"]["arguments"])
 
             if func_name == "get_cars":
-                result = await ai_tools.get_cars_in_garage(db, status=args.get("status"))
+                result = await ai_tools.get_cars_in_garage(
+                    db, status=args.get("status"), plate_number=args.get("plate_number")
+                )
             elif func_name == "get_repair_history":
                 result = await ai_tools.get_repair_history(db, plate_number=args.get("plate_number"))
             else:
@@ -128,8 +132,4 @@ async def run_manager_agent(prompt: str, db: AsyncSession) -> str:
                 }
             )
 
-        final_response = await agent_client.chat.completions.create(model="gpt-4o-mini", messages=cast(Any, messages))
-
-        return final_response.choices[0].message.content or "No response from AI."
-
-    return response_message.content if response_message.content else "No response."
+    return "The AI exceeded the character limit and was unable to generate a response."

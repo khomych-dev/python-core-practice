@@ -6,15 +6,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models import CarDB, RepairHistoryDB
 
 
-async def get_cars_in_garage(db: AsyncSession, status: str | None = None) -> list[dict[str, Any]]:
+async def get_cars_in_garage(
+    db: AsyncSession, status: str | None = None, plate_number: str | None = None
+) -> list[dict[str, Any]]:
     """
     Retrieves a list of cars from the database.
-    Optionally filters by the car's status (e.g., 'in_garage', 'released').
+    Optionally filters by status or plate_number.
     """
     stmt = select(CarDB)
 
     if status:
         stmt = stmt.where(CarDB.status == status)
+
+    if plate_number:
+        stmt = stmt.where(CarDB.plate_number == plate_number)
 
     result = await db.execute(stmt)
     cars = result.scalars().all()
