@@ -1,11 +1,14 @@
 from typing import Annotated, Any
 
+from arq import create_pool
+from arq.connections import RedisSettings
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import get_current_user, get_db, require_admin
+from config import settings
 from logger import log
 from models import CarDB
 
@@ -117,6 +120,11 @@ async def new_status(
 
     car.status = request.new_status
     await db.commit()
+
+    if request.new_status == "released":
+        redis_pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))
+        await redis_pool.enqueue_job("generate_invoice_task", plate_number)
+        await redis_pool.close()
 
     return MessageResponse(message=(f"Status for car {plate_number} successfully updated to '{request.new_status}'"))
 
