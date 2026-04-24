@@ -2,6 +2,7 @@ import json
 from typing import Any, cast
 
 import instructor
+from langfuse.decorators import observe
 from langfuse.openai import AsyncOpenAI
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,9 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import ai_tools
 from config import settings
 
-instructor_client = instructor.from_openai(AsyncOpenAI(api_key=settings.openai_api_key))
-
 agent_client = AsyncOpenAI(api_key=settings.openai_api_key)
+
+instructor_client = instructor.from_openai(agent_client)
 
 
 class RepairReport(BaseModel):
@@ -29,6 +30,7 @@ class RepairReport(BaseModel):
     )
 
 
+@observe(name="Extract Repair Data (Structured Output)")
 async def extract_repair_data(mechanic_text: str) -> RepairReport:
     report = await instructor_client.chat.completions.create(
         model="gpt-4o-mini",
@@ -51,6 +53,7 @@ async def extract_repair_data(mechanic_text: str) -> RepairReport:
     return cast(RepairReport, report)
 
 
+@observe(name="Manager Agent Loop")
 async def run_manager_agent(prompt: str, db: AsyncSession) -> str:
     tools: list[dict[str, Any]] = [
         {

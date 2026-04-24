@@ -1,4 +1,7 @@
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+load_dotenv()
 
 
 class Settings(BaseSettings):
@@ -7,6 +10,11 @@ class Settings(BaseSettings):
     openai_api_key: str
     redis_url: str = "redis://localhost:6379/0"
     database_url_test: str | None = None
+
+    langfuse_public_key: str
+    langfuse_secret_key: str
+    langfuse_host: str = "https://cloud.langfuse.com"
+
     model_config = SettingsConfigDict(env_file=".env", extra="forbid")
 
 

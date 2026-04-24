@@ -2,7 +2,7 @@ import os
 from typing import Any
 
 from arq.connections import RedisSettings
-from langfuse.decorators import observe
+from langfuse.decorators import langfuse_context, observe
 from sqlalchemy import select
 
 from ai_service import agent_client
@@ -79,6 +79,9 @@ async def generate_invoice_task(ctx: dict[str, Any], raw_plate_number: str) -> b
         f.write(invoice_text or "Text generation error.")
 
     log.info("invoice_generation_success", car=plate_number, file_path=file_path)
+
+    langfuse_context.flush()
+
     return True
 
 
