@@ -2,6 +2,7 @@ import os
 from typing import Any
 
 from arq.connections import RedisSettings
+from langfuse.decorators import observe
 from sqlalchemy import select
 
 from ai_service import agent_client
@@ -11,6 +12,7 @@ from logger import log
 from models import RepairHistoryDB
 
 
+@observe()
 async def generate_invoice_task(ctx: dict[str, Any], raw_plate_number: str) -> bool:
     plate_number = raw_plate_number.strip()
     log.info("invoice_generation_started", car=plate_number)
