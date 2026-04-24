@@ -29,7 +29,12 @@ async def generate_invoice_task(ctx: dict[str, Any], raw_plate_number: str) -> b
         log.warning("no_repair_history_found", car=plate_number)
         return False
 
-    history_text = "\n".join([f"- {r.raw_text}" for r in records])
+    history_text = "\n".join(
+        [
+            f"- Date: {r.created_at.strftime('%Y-%m-%d')}. Mechanic: {r.mechanic_username}. Works: {r.raw_text}"
+            for r in records
+        ]
+    )
 
     try:
         response = await agent_client.chat.completions.create(
@@ -37,15 +42,23 @@ async def generate_invoice_task(ctx: dict[str, Any], raw_plate_number: str) -> b
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a professional service center manager. "
-                    "Your task is to generate a professional invoice for the customer (in Markdown format) "
-                    "based on their repair history. "
-                    "Include a list of services performed, the parts used, and the total amount. Be polite.",
+                    "content": (
+                        "You are the general manager of a high-end auto service center. "
+                        "Your task is to generate the final "
+                        "an invoice for the client in Markdown format.\n"
+                        "MANDATORY RULES:\n"
+                        "1. Use the actual date and the mechanic's name from the provided information "
+                        "(add the mechanic's name at the end of the document).\n"
+                        "2. Come up with reasonable and realistic prices in hryvnia (UAH) "
+                        "for each service and spare part.\n"
+                        "3. Be sure to calculate and enter the final amount (Total due).\n"
+                        "4. Do not use placeholders such as [Insert] or [Your Name]; fill out the document completely."
+                    ),
                 },
                 {
                     "role": "user",
-                    "content": f"Generate a final report for the vehicle with license plate number {plate_number}. "
-                    f"Here is the raw data from the mechanics:\n{history_text}",
+                    "content": f"Generate an invoice for the car with license plate number {plate_number}. "
+                    f"Here is the raw data from the database:\n{history_text}",
                 },
             ],
             temperature=0.2,
@@ -60,7 +73,7 @@ async def generate_invoice_task(ctx: dict[str, Any], raw_plate_number: str) -> b
     file_path = f"invoices/{plate_number}_invoice.md"
 
     with open(file_path, "w", encoding="utf-8") as f:
-        f.write(invoice_text or "Помилка генерації тексту.")
+        f.write(invoice_text or "Text generation error.")
 
     log.info("invoice_generation_success", car=plate_number, file_path=file_path)
     return True

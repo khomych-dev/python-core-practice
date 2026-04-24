@@ -35,6 +35,8 @@ services:
       - db
       - redis
     command: ["arq", "worker.WorkerSettings"]
+    volumes:
+      - ./invoices:/app/invoices
 
   redis:
     image: redis:7-alpine
