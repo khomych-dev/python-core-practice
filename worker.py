@@ -11,10 +11,16 @@ from logger import log
 from models import RepairHistoryDB
 
 
-async def generate_invoice_task(ctx: dict[str, Any], plate_number: str) -> bool:
+async def generate_invoice_task(ctx: dict[str, Any], raw_plate_number: str) -> bool:
+    plate_number = raw_plate_number.strip()
     log.info("invoice_generation_started", car=plate_number)
 
     async with AsyncSessionLocal() as db:
+        debug_stmt = select(RepairHistoryDB.car_plate_number)
+        debug_result = await db.execute(debug_stmt)
+        all_plates = debug_result.scalars().all()
+        log.info("debug_all_plates_in_db", plates=all_plates)
+
         stmt = select(RepairHistoryDB).where(RepairHistoryDB.car_plate_number == plate_number)
         result = await db.execute(stmt)
         records = result.scalars().all()
@@ -23,7 +29,12 @@ async def generate_invoice_task(ctx: dict[str, Any], plate_number: str) -> bool:
         log.warning("no_repair_history_found", car=plate_number)
         return False
 
-    history_text = "\n".join([f"- {r.raw_text}" for r in records])
+    history_text = "\n".join(
+        [
+            f"- Date: {r.created_at.strftime('%Y-%m-%d')}. Mechanic: {r.mechanic_username}. Works: {r.raw_text}"
+            for r in records
+        ]
+    )
 
     try:
         response = await agent_client.chat.completions.create(
@@ -31,15 +42,24 @@ async def generate_invoice_task(ctx: dict[str, Any], plate_number: str) -> bool:
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a professional service center manager. "
-                    "Your task is to generate a professional invoice for the customer (in Markdown format) "
-                    "based on their repair history. "
-                    "Include a list of services performed, the parts used, and the total amount. Be polite.",
+                    "content": (
+                        "You are the general manager of a high-end auto service center. "
+                        "Your task is to generate the final "
+                        "an invoice for the client in Markdown format.\n"
+                        "MANDATORY RULES:\n"
+                        "1. Use the actual date and the mechanic's name from the provided data "
+                        "(add the mechanic's name at the end of the document).\n"
+                        "2. If you have not been provided with specific data (such as prices for services or parts), "
+                        "it is STRICTLY PROHIBITED to make them up. "
+                        "Instead, write 'data missing' in the corresponding table fields or in the total."
+                        "3. Be sure to complete the entire document layout "
+                        "(including columns for prices and the total amount), applying Rule 3 for unknown figures."
+                    ),
                 },
                 {
                     "role": "user",
-                    "content": f"Generate a final report for the vehicle with license plate number {plate_number}. "
-                    f"Here is the raw data from the mechanics:\n{history_text}",
+                    "content": f"Generate an invoice for the car with license plate number {plate_number}. "
+                    f"Here is the raw data from the database:\n{history_text}",
                 },
             ],
             temperature=0.2,
@@ -54,7 +74,7 @@ async def generate_invoice_task(ctx: dict[str, Any], plate_number: str) -> bool:
     file_path = f"invoices/{plate_number}_invoice.md"
 
     with open(file_path, "w", encoding="utf-8") as f:
-        f.write(invoice_text or "Помилка генерації тексту.")
+        f.write(invoice_text or "Text generation error.")
 
     log.info("invoice_generation_success", car=plate_number, file_path=file_path)
     return True

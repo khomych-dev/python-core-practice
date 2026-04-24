@@ -57,67 +57,79 @@ async def run_manager_agent(prompt: str, db: AsyncSession) -> str:
             "type": "function",
             "function": {
                 "name": "get_cars",
-                "description": "Retrieves a list of cars from the database. "
-                "Use this to answer questions about cars, their brands, owners, or statuses.",
+                "description": "Get car details (owner, brand, status).",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "status": {
-                            "type": "string",
-                            "description": "Optional filter for car status. "
-                            "Valid values are usually 'in_garage' or 'released'.",
-                        }
+                        "status": {"type": "string", "description": "Filter by 'in_garage' or 'released'."},
+                        "plate_number": {"type": "string", "description": "Filter by plate number, e.g., BC7777CB"},
                     },
                     "required": [],
                 },
             },
-        }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "get_repair_history",
+                "description": "Get detailed repair history for a specific car.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"plate_number": {"type": "string", "description": "Plate number, e.g., BC7777CB"}},
+                    "required": ["plate_number"],
+                },
+            },
+        },
     ]
 
     messages: list[dict[str, Any]] = [
         {
             "role": "system",
-            "content": "You are a helpful garage manager assistant. "
-            "Use the supplied tools to answer questions about the garage. Provide concise and accurate answers.",
+            "content": (
+                "You're the service center manager. Please provide as much detail as possible."
+                "If someone asks about a car, be sure to check both its status (get_cars) "
+                "and its repair history (get_repair_history)."
+            ),
         },
         {"role": "user", "content": prompt},
     ]
 
-    response = await agent_client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=cast(Any, messages),
-        tools=cast(Any, tools),
-        tool_choice="auto",
-    )
+    max_iterations = 5
+    for _ in range(max_iterations):
+        response = await agent_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=cast(Any, messages),
+            tools=cast(Any, tools),
+            tool_choice="auto",
+        )
 
-    response_message = response.choices[0].message
+        response_message = response.choices[0].message
 
-    if response_message.tool_calls:
-        tool_call = response_message.tool_calls[0]
+        if not response_message.tool_calls:
+            return response_message.content or "No response."
 
-        tool_call_dict = tool_call.model_dump()
+        messages.append(response_message.model_dump(exclude_none=True))
 
-        if tool_call_dict["function"]["name"] == "get_cars":
+        for tool_call in response_message.tool_calls:
+            tool_call_dict = tool_call.model_dump()
+            func_name = tool_call_dict["function"]["name"]
             args = json.loads(tool_call_dict["function"]["arguments"])
-            status_filter = args.get("status")
 
-            cars_data = await ai_tools.get_cars_in_garage(db, status=status_filter)
-
-            messages.append(response_message.model_dump(exclude_none=True))
+            if func_name == "get_cars":
+                result = await ai_tools.get_cars_in_garage(
+                    db, status=args.get("status"), plate_number=args.get("plate_number")
+                )
+            elif func_name == "get_repair_history":
+                result = await ai_tools.get_repair_history(db, plate_number=args.get("plate_number"))
+            else:
+                result = [{"error": f"Unknown function: {func_name}"}]
 
             messages.append(
                 {
                     "role": "tool",
                     "tool_call_id": tool_call_dict["id"],
-                    "content": json.dumps(cars_data, ensure_ascii=False),
+                    "content": json.dumps(result, ensure_ascii=False),
                 }
             )
 
-            final_response = await agent_client.chat.completions.create(
-                model="gpt-4o-mini", messages=cast(Any, messages)
-            )
-
-            content = final_response.choices[0].message.content
-            return content if content else "The AI was unable to generate a response."
-
-    return response_message.content if response_message.content else "No response."
+    return "The AI exceeded the character limit and was unable to generate a response."
