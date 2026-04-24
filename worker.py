@@ -47,12 +47,13 @@ async def generate_invoice_task(ctx: dict[str, Any], raw_plate_number: str) -> b
                         "Your task is to generate the final "
                         "an invoice for the client in Markdown format.\n"
                         "MANDATORY RULES:\n"
-                        "1. Use the actual date and the mechanic's name from the provided information "
+                        "1. Use the actual date and the mechanic's name from the provided data "
                         "(add the mechanic's name at the end of the document).\n"
-                        "2. Come up with reasonable and realistic prices in hryvnia (UAH) "
-                        "for each service and spare part.\n"
-                        "3. Be sure to calculate and enter the final amount (Total due).\n"
-                        "4. Do not use placeholders such as [Insert] or [Your Name]; fill out the document completely."
+                        "2. If you have not been provided with specific data (such as prices for services or parts), "
+                        "it is STRICTLY PROHIBITED to make them up. "
+                        "Instead, write 'data missing' in the corresponding table fields or in the total."
+                        "3. Be sure to complete the entire document layout "
+                        "(including columns for prices and the total amount), applying Rule 3 for unknown figures."
                     ),
                 },
                 {
