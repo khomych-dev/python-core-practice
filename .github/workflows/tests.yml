@@ -62,4 +62,7 @@ jobs:
           REDIS_URL: redis://localhost:6379/0
           SECRET_KEY: "ci_test_secret_key"
           OPENAI_API_KEY: "sk-dummy-test-key-for-github-actions"
+          LANGFUSE_PUBLIC_KEY: "pk-lf-dummy-key"
+          LANGFUSE_SECRET_KEY: "sk-lf-dummy-key"
+          LANGFUSE_HOST: "https://cloud.langfuse.com"
         run: pytest -v
