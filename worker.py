@@ -2,7 +2,7 @@ import os
 from typing import Any
 
 from arq.connections import RedisSettings
-from langfuse.decorators import langfuse_context, observe
+from langfuse.decorators import langfuse_context, observe  # pyright: ignore[reportMissingImports]
 from sqlalchemy import select
 
 from ai_service import agent_client
