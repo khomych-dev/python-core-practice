@@ -3,7 +3,7 @@ from typing import Any, cast
 
 import instructor
 from langfuse import observe
-from langfuse.openai import AsyncOpenAI
+from langfuse.openai import AsyncOpenAI  # type: ignore
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
