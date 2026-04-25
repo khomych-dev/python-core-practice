@@ -2,7 +2,7 @@ import os
 from typing import Any
 
 from arq.connections import RedisSettings
-from langfuse.decorators import langfuse_context, observe  # pyright: ignore[reportMissingImports]
+from langfuse import get_client, observe
 from sqlalchemy import select
 
 from ai_service import agent_client
@@ -80,7 +80,7 @@ async def generate_invoice_task(ctx: dict[str, Any], raw_plate_number: str) -> b
 
     log.info("invoice_generation_success", car=plate_number, file_path=file_path)
 
-    langfuse_context.flush()
+    get_client().flush()
 
     return True
 

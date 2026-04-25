@@ -2,7 +2,7 @@ import json
 from typing import Any, cast
 
 import instructor
-from langfuse.decorators import observe  # pyright: ignore[reportMissingImports]
+from langfuse import observe
 from langfuse.openai import AsyncOpenAI
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession

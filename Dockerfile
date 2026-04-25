@@ -5,7 +5,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /app
 
 COPY requirements.txt .
-RUN uv pip install --system --no-cache -r requirements.txt
+
+RUN uv pip install --system --no-cache -r requirements.txt \
+    && chmod -R 755 /usr/local/lib/python3.12/site-packages
 
 RUN useradd -m -d /app -s /bin/bash appuser
 
