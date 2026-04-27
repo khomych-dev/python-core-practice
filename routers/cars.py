@@ -1,18 +1,13 @@
 from typing import Annotated, Any
 
-from arq import create_pool
-from arq.connections import RedisSettings
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth import get_current_user, get_db, require_admin
-from config import settings
-from logger import log
-from models import CarDB
+from auth import get_current_user, require_admin
+from dependencies import get_car_service
+from services.car_service import CarService
 
-router = APIRouter(prefix="/api/v1/cars")
+router = APIRouter(prefix="/api/v1/cars", tags=["Cars"])
 
 
 class CarRegisterRequest(BaseModel):
@@ -23,8 +18,7 @@ class CarRegisterRequest(BaseModel):
     @field_validator("plate_number")
     @classmethod
     def format_plate(cls, value: str) -> str:
-        cleaned = value.replace(" ", "").upper()
-        return cleaned
+        return value.replace(" ", "").upper()
 
 
 class StatusUpdateRequest(BaseModel):
@@ -38,12 +32,9 @@ class MessageResponse(BaseModel):
 @router.get("/")
 async def all_cars(
     current_user: Annotated[dict[str, Any], Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    service: Annotated[CarService, Depends(get_car_service)],
 ) -> list[dict[str, Any]]:
-    stmt = select(CarDB)
-    result = await db.execute(stmt)
-    cars = result.scalars().all()
-
+    cars = await service.get_all_cars()
     return [
         {
             "plate_number": car.plate_number,
@@ -60,37 +51,15 @@ async def all_cars(
 async def register_new_car(
     request: CarRegisterRequest,
     current_user: Annotated[dict[str, Any], Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    service: Annotated[CarService, Depends(get_car_service)],
 ) -> MessageResponse:
-    username = current_user["username"]
-    log.info(
-        "car_registration_started",
-        username=username,
-        plate_number=request.plate_number,
-        action_type="audit",
+
+    await service.register_car(
+        plate_number=request.plate_number, brand=request.brand, owner=request.owner, username=current_user["username"]
     )
-
-    stmt = select(CarDB).where(CarDB.plate_number == request.plate_number)
-    result = await db.execute(stmt)
-    if result.scalar_one_or_none():
-        raise HTTPException(
-            status_code=400,
-            detail=f"Car with plate {request.plate_number} is already in the database.",
-        )
-
-    new_car = CarDB(
-        plate_number=request.plate_number,
-        brand=request.brand,
-        owner=request.owner,
-        status="in_garage",
-        mechanic_username=username,
-    )
-
-    db.add(new_car)
-    await db.commit()
 
     return MessageResponse(
-        message=(f"Vehicle {request.brand} ({request.plate_number}) successfully registered by {username}.")
+        message=f"The vehicle {request.brand} ({request.plate_number}) has been successfully registered."
     )
 
 
@@ -99,68 +68,30 @@ async def new_status(
     plate_number: str,
     request: StatusUpdateRequest,
     admin_user: Annotated[dict[str, Any], Depends(require_admin)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    service: Annotated[CarService, Depends(get_car_service)],
 ) -> MessageResponse:
-    username = admin_user["username"]
 
-    log.info(
-        "car_status_updated",
-        username=username,
-        plate_number=plate_number,
-        new_status=request.new_status,
-        action_type="audit",
+    await service.update_status(
+        plate_number=plate_number, new_status=request.new_status, admin_username=admin_user["username"]
     )
 
-    stmt = select(CarDB).where(CarDB.plate_number == plate_number)
-    result = await db.execute(stmt)
-    car = result.scalar_one_or_none()
-
-    if not car:
-        raise HTTPException(status_code=404, detail=f"Car with plate {plate_number} not found")
-
-    car.status = request.new_status
-    await db.commit()
-
-    if request.new_status == "released":
-        redis_pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))
-        await redis_pool.enqueue_job("generate_invoice_task", plate_number)
-        await redis_pool.close()
-
-    return MessageResponse(message=(f"Status for car {plate_number} successfully updated to '{request.new_status}'"))
+    return MessageResponse(
+        message=f"The status for vehicle {plate_number} has been successfully changed to '{request.new_status}'."
+    )
 
 
 @router.delete("/{plate_number}", response_model=MessageResponse)
 async def delete_car(
     plate_number: str,
     admin_user: Annotated[dict[str, Any], Depends(require_admin)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    service: Annotated[CarService, Depends(get_car_service)],
 ) -> MessageResponse:
-    admin_name = admin_user["username"]
-    log.warning(
-        "car_deleted",
-        admin_username=admin_name,
-        plate_number=plate_number,
-        action_type="audit",
-    )
 
-    stmt = select(CarDB).where(CarDB.plate_number == plate_number)
-    result = await db.execute(stmt)
-    car = result.scalar_one_or_none()
-
-    if not car:
-        raise HTTPException(status_code=404, detail=f"Car with plate {plate_number} not found")
-
-    if car.status != "released":
-        raise HTTPException(
-            status_code=400,
-            detail=(f"Cannot delete car. Current status is '{car.status}'. Change status to 'released' first."),
-        )
-
-    await db.delete(car)
-    await db.commit()
+    await service.delete_car(plate_number=plate_number, admin_username=admin_user["username"])
 
     return MessageResponse(
-        message=(f"The car {plate_number} has been successfully deleted by the administrator {admin_name}.")
+        message=f"The vehicle with license plate {plate_number} "
+        f"has been successfully deleted by the administrator {admin_user['username']}."
     )
 
 
