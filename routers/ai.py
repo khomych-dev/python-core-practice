@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai_service import RepairReport, extract_repair_data, run_manager_agent
 from auth import get_current_user, get_db, require_admin
+from dependencies import ai_rate_limiter
 from models import CarDB
 from schemas import AgentRequest, AgentResponse
 
@@ -22,7 +23,7 @@ class AIRepairResponse(BaseModel):
     extracted_data: RepairReport
 
 
-@router.post("/extract", response_model=AIRepairResponse)
+@router.post("/extract", response_model=AIRepairResponse, dependencies=[Depends(ai_rate_limiter)])
 async def process_repair_text(
     prompt: MechanicPrompt,
     current_user: Annotated[dict[str, Any], Depends(get_current_user)],
@@ -58,7 +59,7 @@ async def process_repair_text(
     return AIRepairResponse(message=msg, extracted_data=repair_data)
 
 
-@router.post("/manager-insight", response_model=AgentResponse)
+@router.post("/manager-insight", response_model=AgentResponse, dependencies=[Depends(ai_rate_limiter)])
 async def manager_insight(
     request: AgentRequest,
     admin_user: Annotated[dict[str, Any], Depends(require_admin)],
