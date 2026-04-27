@@ -31,12 +31,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await init_db()
 
     log.info("Connecting to Redis for background tasks...")
-    app.state.redis = await create_pool(RedisSettings.from_dsn(settings.redis_url))
+    app.state.redis_pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))
 
     yield
 
     log.info("Disconnecting from Redis...")
-    await app.state.redis.close()
+    await app.state.redis_pool.close()
 
 
 app = FastAPI(lifespan=lifespan)
