@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException, status
 from auth import get_current_user
 from config import settings
 
-redis_client = redis.from_url(str(settings.redis_url), decode_responses=True)
+redis_client = redis.from_url(str(settings.redis_url), decode_responses=True)  # type: ignore[no-untyped-call]
 
 
 async def ai_rate_limiter(current_user: Annotated[dict[str, Any], Depends(get_current_user)]) -> dict[str, Any]:
