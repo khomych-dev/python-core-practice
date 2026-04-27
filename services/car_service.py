@@ -79,3 +79,6 @@ class CarService:
         )
 
         await self.repo.delete(car)
+
+    async def get_cars_by_status(self, status: str) -> Sequence[CarDB]:
+        return await self.repo.get_by_status(status)

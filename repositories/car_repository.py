@@ -40,3 +40,8 @@ class CarRepository:
         (for example, changed the car's status).
         """
         await self.session.commit()
+
+    async def get_by_status(self, status: str) -> Sequence[CarDB]:
+        stmt = select(CarDB).where(CarDB.status == status)
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
