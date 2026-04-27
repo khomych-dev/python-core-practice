@@ -7,7 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from auth import get_current_user, get_db
 from config import settings
 from repositories.car_repository import CarRepository
+from repositories.repair_repository import RepairRepository
 from services.car_service import CarService
+from services.repair_service import RepairService
 
 redis_client = redis.from_url(str(settings.redis_url), decode_responses=True)  # type: ignore[no-untyped-call]
 
@@ -51,3 +53,8 @@ async def get_car_service(
 ) -> CarService:
     repo = CarRepository(db)
     return CarService(repo, redis_pool)
+
+
+async def get_repair_service(db: AsyncSession = Depends(get_db)) -> RepairService:
+    repo = RepairRepository(db)
+    return RepairService(repo)
