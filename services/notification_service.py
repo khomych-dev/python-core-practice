@@ -1,4 +1,10 @@
+import asyncio
+import json
+
 from fastapi import WebSocket
+from redis.asyncio import Redis
+
+from config import settings
 
 
 class ConnectionManager:
@@ -29,3 +35,26 @@ class ConnectionManager:
 
 
 manager = ConnectionManager()
+
+
+async def listen_for_notifications() -> None:
+    """Фонова задача, яка постійно слухає Redis канал 'notifications'."""
+    redis = Redis.from_url(settings.redis_url)
+    pubsub = redis.pubsub()
+    await pubsub.subscribe("notifications")
+
+    try:
+        async for message in pubsub.listen():
+            if message["type"] == "message":
+                data = json.loads(message["data"])
+                target_user = data.get("username")
+                text = data.get("message", "Отримано нове сповіщення")
+
+                if target_user:
+                    await manager.send_personal_message(text, target_user)
+                else:
+                    await manager.broadcast(text)
+    except asyncio.CancelledError:
+        await pubsub.unsubscribe("notifications")
+    finally:
+        await redis.close()

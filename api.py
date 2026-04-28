@@ -1,3 +1,4 @@
+import asyncio
 import time
 import uuid
 from collections.abc import AsyncGenerator, Awaitable, Callable
@@ -24,6 +25,7 @@ from routers import repairs
 from routers.ai import router as ai_router
 from routers.cars import router as cars_router
 from routers.notifications import router as notifications_router
+from services.notification_service import listen_for_notifications
 
 
 @asynccontextmanager
@@ -34,7 +36,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     log.info("Connecting to Redis for background tasks...")
     app.state.redis_pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))
 
+    log.info("Starting Redis notification listener...")
+    listener_task = asyncio.create_task(listen_for_notifications())
+
     yield
+
+    log.info("Stopping Redis notification listener...")
+    listener_task.cancel()
+    try:
+        await listener_task
+    except asyncio.CancelledError:
+        log.info("Redis notification listener stopped.")
 
     log.info("Disconnecting from Redis...")
     await app.state.redis_pool.close()
