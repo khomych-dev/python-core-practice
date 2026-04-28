@@ -41,4 +41,4 @@ async def test_register_car_success(db_session: AsyncSession) -> None:
     assert response.status_code == 201
     assert "successfully registered" in response.json()["message"]
 
-    app.dependency_overrides.clear()
+    app.dependency_overrides.pop(get_current_user, None)
