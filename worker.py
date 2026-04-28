@@ -1,8 +1,10 @@
+import json
 import os
 from typing import Any
 
 from arq.connections import RedisSettings
 from langfuse import get_client, observe
+from redis.asyncio import Redis
 
 from config import settings
 from database import AsyncSessionLocal
@@ -73,6 +75,17 @@ async def generate_invoice_task(ctx: dict[str, Any], raw_plate_number: str) -> b
         f.write(invoice_text or "Text generation error.")
 
     log.info("invoice_generation_success", car=plate_number, file_path=file_path)
+
+    try:
+        redis_client = Redis.from_url(settings.redis_url)
+        notification = {
+            "message": f"The invoice for the vehicle {plate_number} "
+            "has been successfully generated and saved to a file!"
+        }
+        await redis_client.publish("notifications", json.dumps(notification))
+        await redis_client.close()
+    except Exception as e:
+        log.error("failed_to_send_ws_notification", error=str(e))
 
     get_client().flush()
 
