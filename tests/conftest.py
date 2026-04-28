@@ -1,5 +1,6 @@
 import os
 from collections.abc import AsyncGenerator
+from unittest.mock import AsyncMock
 
 import pytest_asyncio
 from dotenv import load_dotenv
@@ -8,6 +9,7 @@ from sqlalchemy.pool import NullPool
 
 from api import app
 from auth import get_db
+from dependencies import get_redis_pool
 from models import Base
 
 load_dotenv()
@@ -34,7 +36,12 @@ async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
+async def override_get_redis_pool() -> AsyncGenerator[AsyncMock, None]:
+    yield AsyncMock()
+
+
 app.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[get_redis_pool] = override_get_redis_pool
 
 
 @pytest_asyncio.fixture
