@@ -3,13 +3,12 @@ from typing import Any
 
 from arq.connections import RedisSettings
 from langfuse import get_client, observe
-from sqlalchemy import select
 
-from ai_service import agent_client
 from config import settings
 from database import AsyncSessionLocal
 from logger import log
-from models import RepairHistoryDB
+from repositories.repair_repository import RepairRepository
+from services.ai_service import agent_client
 
 
 @observe()
@@ -18,14 +17,8 @@ async def generate_invoice_task(ctx: dict[str, Any], raw_plate_number: str) -> b
     log.info("invoice_generation_started", car=plate_number)
 
     async with AsyncSessionLocal() as db:
-        debug_stmt = select(RepairHistoryDB.car_plate_number)
-        debug_result = await db.execute(debug_stmt)
-        all_plates = debug_result.scalars().all()
-        log.info("debug_all_plates_in_db", plates=all_plates)
-
-        stmt = select(RepairHistoryDB).where(RepairHistoryDB.car_plate_number == plate_number)
-        result = await db.execute(stmt)
-        records = result.scalars().all()
+        repo = RepairRepository(db)
+        records = await repo.get_by_car_plate(plate_number)
 
     if not records:
         log.warning("no_repair_history_found", car=plate_number)
@@ -33,7 +26,8 @@ async def generate_invoice_task(ctx: dict[str, Any], raw_plate_number: str) -> b
 
     history_text = "\n".join(
         [
-            f"- Date: {r.created_at.strftime('%Y-%m-%d')}. Mechanic: {r.mechanic_username}. Works: {r.raw_text}"
+            f"- Date: {r.created_at.strftime('%Y-%m-%d') if r.created_at else 'Unknown'}. "
+            f"Mechanic: {r.mechanic_username}. Works: {r.raw_text}"
             for r in records
         ]
     )
