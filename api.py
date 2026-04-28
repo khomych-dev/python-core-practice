@@ -23,6 +23,7 @@ from logger import log, request_id_var
 from routers import repairs
 from routers.ai import router as ai_router
 from routers.cars import router as cars_router
+from routers.notifications import router as notifications_router
 
 
 @asynccontextmanager
@@ -77,6 +78,7 @@ app.include_router(cars_router)
 app.include_router(auth.router)
 app.include_router(ai_router)
 app.include_router(repairs.router)
+app.include_router(notifications_router)
 
 
 @app.exception_handler(ValueError)
