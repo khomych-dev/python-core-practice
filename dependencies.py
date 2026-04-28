@@ -8,6 +8,7 @@ from auth import get_current_user, get_db
 from config import settings
 from repositories.car_repository import CarRepository
 from repositories.repair_repository import RepairRepository
+from services.ai_service import AIService
 from services.car_service import CarService
 from services.repair_service import RepairService
 
@@ -15,9 +16,6 @@ redis_client = redis.from_url(str(settings.redis_url), decode_responses=True)  #
 
 
 async def ai_rate_limiter(current_user: Annotated[dict[str, Any], Depends(get_current_user)]) -> dict[str, Any]:
-    """
-    Limit: 5 requests per minute per user.
-    """
     username = current_user.get("username")
     key = f"rate_limit:ai:user:{username}"
 
@@ -41,9 +39,6 @@ async def ai_rate_limiter(current_user: Annotated[dict[str, Any], Depends(get_cu
 
 
 async def get_redis_pool(request: Request) -> Any:
-    """
-    Retrieves the global ARQ pool that we create when the server starts in main.py.
-    """
     return getattr(request.app.state, "redis_pool", None)
 
 
@@ -58,3 +53,11 @@ async def get_car_service(
 async def get_repair_service(db: AsyncSession = Depends(get_db)) -> RepairService:
     repo = RepairRepository(db)
     return RepairService(repo)
+
+
+async def get_ai_service(
+    car_service: CarService = Depends(get_car_service),
+    repair_service: RepairService = Depends(get_repair_service),
+) -> AIService:
+
+    return AIService(car_service, repair_service)
