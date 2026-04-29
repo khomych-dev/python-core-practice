@@ -25,6 +25,7 @@ from routers import repairs
 from routers.ai import router as ai_router
 from routers.api_keys import router as api_keys_router
 from routers.cars import router as cars_router
+from routers.external import router as external_router
 from routers.notifications import router as notifications_router
 from services.notification_service import listen_for_notifications
 
@@ -93,6 +94,7 @@ app.include_router(ai_router)
 app.include_router(repairs.router)
 app.include_router(notifications_router)
 app.include_router(api_keys_router)
+app.include_router(external_router)
 
 
 @app.exception_handler(ValueError)
