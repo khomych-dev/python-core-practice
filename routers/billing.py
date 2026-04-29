@@ -54,7 +54,7 @@ async def stripe_webhook(
         raise HTTPException(status_code=400, detail="Missing Stripe signature")
 
     try:
-        event = stripe.Webhook.construct_event(
+        event = stripe.Webhook.construct_event(  # type: ignore[no-untyped-call]
             payload=payload, sig_header=sig_header, secret=settings.stripe_webhook_secret
         )
     except ValueError as e:
