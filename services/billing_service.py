@@ -47,3 +47,9 @@ class BillingService:
         await self.repo.add(new_invoice)
 
         return str(session.url)
+
+    async def mark_invoice_paid(self, session_id: str) -> None:
+        invoice = await self.repo.get_by_stripe_id(session_id)
+        if invoice and invoice.status != "paid":
+            invoice.status = "paid"
+            await self.repo.commit()

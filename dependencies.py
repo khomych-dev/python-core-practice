@@ -10,8 +10,10 @@ from auth import get_current_user, get_db
 from config import settings
 from models import ApiKeyDB
 from repositories.car_repository import CarRepository
+from repositories.invoice_repository import InvoiceRepository
 from repositories.repair_repository import RepairRepository
 from services.ai_service import AIService
+from services.billing_service import BillingService
 from services.car_service import CarService
 from services.repair_service import RepairService
 
@@ -88,3 +90,8 @@ async def get_ai_service(
     repair_service: RepairService = Depends(get_repair_service),
 ) -> AIService:
     return AIService(car_service, repair_service)
+
+
+async def get_billing_service(db: AsyncSession = Depends(get_db)) -> BillingService:
+    repo = InvoiceRepository(db)
+    return BillingService(repo)
