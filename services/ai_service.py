@@ -1,7 +1,6 @@
 import json
 from typing import Any, cast
 
-import instructor
 from langfuse import observe
 from langfuse.openai import AsyncOpenAI  # type: ignore
 from pydantic import BaseModel, Field
@@ -11,7 +10,6 @@ from services.car_service import CarService
 from services.repair_service import RepairService
 
 agent_client = AsyncOpenAI(api_key=settings.openai_api_key)
-instructor_client = instructor.from_openai(agent_client)
 
 
 class RepairReport(BaseModel):
@@ -36,9 +34,9 @@ class AIService:
 
     @observe(name="Extract Repair Data (Structured Output)")
     async def extract_repair_data(self, mechanic_text: str) -> RepairReport:
-        report = await instructor_client.chat.completions.create(
+        report = await agent_client.beta.chat.completions.parse(
             model="gpt-4o-mini",
-            response_model=RepairReport,
+            response_format=RepairReport,
             messages=[
                 {
                     "role": "system",
@@ -54,7 +52,13 @@ class AIService:
             ],
             temperature=0.1,
         )
-        return cast(RepairReport, report)
+
+        parsed_data = report.choices[0].message.parsed
+
+        if parsed_data is None:
+            raise ValueError("Model refused or failed to output structured data.")
+
+        return cast(RepairReport, parsed_data)
 
     @observe(name="Manager Agent Loop")
     async def run_manager_agent(self, prompt: str) -> str:
