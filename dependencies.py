@@ -1,11 +1,14 @@
 from typing import Annotated, Any
 
 import redis.asyncio as redis
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, Security, status
+from fastapi.security.api_key import APIKeyHeader
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import get_current_user, get_db
 from config import settings
+from models import ApiKeyDB
 from repositories.car_repository import CarRepository
 from repositories.repair_repository import RepairRepository
 from services.ai_service import AIService
@@ -13,6 +16,31 @@ from services.car_service import CarService
 from services.repair_service import RepairService
 
 redis_client = redis.from_url(str(settings.redis_url), decode_responses=True)  # type: ignore[no-untyped-call]
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+async def verify_api_key(
+    key_header: str | None = Security(api_key_header),
+    db: AsyncSession = Depends(get_db),
+) -> ApiKeyDB:
+    if not key_header:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API Key is missing in headers (X-API-Key)",
+        )
+
+    stmt = select(ApiKeyDB).where(ApiKeyDB.key == key_header, ApiKeyDB.is_active.is_(True))
+    result = await db.execute(stmt)
+    api_key = result.scalar_one_or_none()
+
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid or inactive API Key",
+        )
+
+    return api_key
 
 
 async def ai_rate_limiter(current_user: Annotated[dict[str, Any], Depends(get_current_user)]) -> dict[str, Any]:
@@ -59,5 +87,4 @@ async def get_ai_service(
     car_service: CarService = Depends(get_car_service),
     repair_service: RepairService = Depends(get_repair_service),
 ) -> AIService:
-
     return AIService(car_service, repair_service)
