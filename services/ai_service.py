@@ -1,5 +1,5 @@
 import json
-from typing import Any, cast
+from typing import Any
 
 from langfuse import observe
 from langfuse.openai import AsyncOpenAI  # type: ignore
@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field
 from config import settings
 from services.car_service import CarService
 from services.repair_service import RepairService
+from tools.core import ToolRegistry
+from tools.garage_tools import GetCarsTool, GetRepairHistoryTool
 
 agent_client = AsyncOpenAI(api_key=settings.openai_api_key)
 
@@ -31,6 +33,10 @@ class AIService:
     def __init__(self, car_service: CarService, repair_service: RepairService):
         self.car_service = car_service
         self.repair_service = repair_service
+
+        self.registry = ToolRegistry()
+        self.registry.register(GetCarsTool(self.car_service))
+        self.registry.register(GetRepairHistoryTool(self.repair_service))
 
     @observe(name="Extract Repair Data (Structured Output)")
     async def extract_repair_data(self, mechanic_text: str) -> RepairReport:
@@ -62,37 +68,7 @@ class AIService:
 
     @observe(name="Manager Agent Loop")
     async def run_manager_agent(self, prompt: str) -> str:
-        tools: list[dict[str, Any]] = [
-            {
-                "type": "function",
-                "function": {
-                    "name": "get_cars",
-                    "description": "Get car details (owner, brand, status).",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "status": {"type": "string", "description": "Filter by 'in_garage' or 'released'."},
-                            "plate_number": {"type": "string", "description": "Filter by plate number, e.g., BC7777CB"},
-                        },
-                        "required": [],
-                    },
-                },
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "get_repair_history",
-                    "description": "Get detailed repair history for a specific car.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "plate_number": {"type": "string", "description": "Plate number, e.g., BC7777CB"}
-                        },
-                        "required": ["plate_number"],
-                    },
-                },
-            },
-        ]
+        tools = self.registry.get_tools_definitions()
 
         messages: list[dict[str, Any]] = [
             {
@@ -108,12 +84,16 @@ class AIService:
 
         max_iterations = 5
         for _ in range(max_iterations):
-            response = await agent_client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=cast(Any, messages),
-                tools=cast(Any, tools),
-                tool_choice="auto",
-            )
+            api_kwargs: dict[str, Any] = {
+                "model": "gpt-4o-mini",
+                "messages": messages,
+            }
+
+            if tools:
+                api_kwargs["tools"] = tools
+                api_kwargs["tool_choice"] = "auto"
+
+            response = await agent_client.chat.completions.create(**api_kwargs)
 
             response_message = response.choices[0].message
 
@@ -125,58 +105,9 @@ class AIService:
             for tool_call in response_message.tool_calls:
                 tool_call_dict = tool_call.model_dump()
                 func_name = tool_call_dict["function"]["name"]
-                args = json.loads(tool_call_dict["function"]["arguments"])
+                arguments = tool_call_dict["function"]["arguments"]
 
-                result: list[dict[str, Any]] = []
-
-                if func_name == "get_cars":
-                    plate = args.get("plate_number")
-                    status_filter = args.get("status")
-
-                    if plate:
-                        car = await self.car_service.repo.get_by_plate(plate)
-                        cars = [car] if car else []
-                    elif status_filter:
-                        cars_seq = await self.car_service.get_cars_by_status(status_filter)
-                        cars = list(cars_seq)
-                    else:
-                        cars_seq = await self.car_service.get_all_cars()
-                        cars = list(cars_seq)
-
-                    if cars:
-                        result = [
-                            {
-                                "plate_number": c.plate_number,
-                                "brand": c.brand,
-                                "owner": c.owner,
-                                "status": c.status,
-                                "mechanic": c.mechanic_username,
-                            }
-                            for c in cars
-                        ]
-                    else:
-                        result = [{"error": "No cars found matching the criteria"}]
-
-                elif func_name == "get_repair_history":
-                    plate = args.get("plate_number")
-                    if plate:
-                        history = await self.repair_service.repo.get_by_car_plate(plate)
-                        if history:
-                            result = [
-                                {
-                                    "mechanic": h.mechanic_username,
-                                    "text": h.raw_text,
-                                    "date": h.created_at.isoformat() if h.created_at else None,
-                                }
-                                for h in history
-                            ]
-                        else:
-                            result = [{"message": "No history found"}]
-                    else:
-                        result = [{"error": "plate_number is required"}]
-
-                else:
-                    result = [{"error": f"Unknown function: {func_name}"}]
+                result = await self.registry.call_tool(func_name, arguments)
 
                 messages.append(
                     {
@@ -185,5 +116,4 @@ class AIService:
                         "content": json.dumps(result, ensure_ascii=False, default=str),
                     }
                 )
-
         return "The AI exceeded the character limit and was unable to generate a response."
