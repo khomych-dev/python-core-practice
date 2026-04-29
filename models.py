@@ -51,3 +51,16 @@ class ApiKeyDB(Base):
     key: Mapped[str] = mapped_column(String, unique=True, index=True, default=lambda: secrets.token_urlsafe(32))
     owner_name: Mapped[str] = mapped_column(String, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class InvoiceDB(Base):
+    __tablename__ = "invoices"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    car_plate_number: Mapped[str] = mapped_column(ForeignKey("cars.plate_number", ondelete="CASCADE"), index=True)
+    amount: Mapped[float] = mapped_column(nullable=False)
+    status: Mapped[str] = mapped_column(String, default="pending")
+    stripe_payment_intent_id: Mapped[str | None] = mapped_column(String, nullable=True, unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), server_default=text("TIMEZONE('utc', now())")
+    )

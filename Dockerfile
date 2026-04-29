@@ -4,17 +4,19 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY pyproject.toml uv.lock ./
 
-RUN uv pip install --system --no-cache -r requirements.txt \
-    && chmod -R 755 /usr/local/lib/python3.12/site-packages
-
-RUN useradd -m -d /app -s /bin/bash appuser
+RUN uv sync --frozen --no-dev --no-install-project
 
 COPY . .
 
-RUN chown -R appuser:appuser /app
+RUN uv sync --frozen --no-dev
+
+RUN useradd -m -d /app -s /bin/bash appuser && \
+    chown -R appuser:appuser /app
 USER appuser
+
+ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 8000
 

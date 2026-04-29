@@ -46,14 +46,14 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv pip install --system -r requirements.txt
-          uv pip install --system ruff mypy pytest pytest-asyncio httpx
+          uv sync --frozen
+          uv pip install ruff mypy pytest pytest-asyncio httpx
 
       - name: Run Linters
         run: |
-          ruff check .
-          ruff format --check .
-          mypy .
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run mypy .
 
       - name: Run tests
         env:
@@ -65,4 +65,6 @@ jobs:
           LANGFUSE_PUBLIC_KEY: "pk-lf-dummy-key"
           LANGFUSE_SECRET_KEY: "sk-lf-dummy-key"
           LANGFUSE_HOST: "https://cloud.langfuse.com"
-        run: pytest -v
+          STRIPE_API_KEY: "sk_test_dummy_ci"
+          STRIPE_WEBHOOK_SECRET: "whsec_dummy_ci"
+        run: uv run pytest -v

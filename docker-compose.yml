@@ -34,7 +34,7 @@ services:
     depends_on:
       - db
       - redis
-    command: ["arq", "worker.WorkerSettings"]
+    command: ["python", "-m", "arq", "worker.WorkerSettings"]
     volumes:
       - ./invoices:/app/invoices
 
