@@ -24,6 +24,7 @@ dependencies = [
     "uvicorn>=0.42.0",
     "langfuse",
     "websockets>=16.0",
+    "stripe>=15.1.0",
 ]
 
 [dependency-groups]
