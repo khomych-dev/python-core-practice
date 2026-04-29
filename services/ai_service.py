@@ -58,7 +58,7 @@ class AIService:
         if parsed_data is None:
             raise ValueError("Model refused or failed to output structured data.")
 
-        return cast(RepairReport, parsed_data)
+        return parsed_data  # type: ignore[no-any-return]
 
     @observe(name="Manager Agent Loop")
     async def run_manager_agent(self, prompt: str) -> str:
