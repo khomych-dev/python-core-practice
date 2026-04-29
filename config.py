@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     langfuse_secret_key: str
     langfuse_base_url: str = "https://cloud.langfuse.com"
 
+    stripe_api_key: str = "sk_test_dummy"
+    stripe_webhook_secret: str = "whsec_dummy"
+
     model_config = SettingsConfigDict(env_file=".env", extra="forbid")
 
 
