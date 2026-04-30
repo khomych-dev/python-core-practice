@@ -3,11 +3,24 @@ services:
     image: postgres:15-alpine
     restart: always
     environment:
-      POSTGRES_USER: garage_admin
-      POSTGRES_PASSWORD: super_secret_password
-      POSTGRES_DB: garage_db
+      POSTGRES_USER: ${POSTGRES_USER:-garage_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-super_secret_password}
+      POSTGRES_DB: ${POSTGRES_DB:-garage_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-garage_admin} -d ${POSTGRES_DB:-garage_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
 
   api:
     build: .
@@ -17,11 +30,13 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://garage_admin:super_secret_password@db:5432/garage_db
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-garage_admin}:${POSTGRES_PASSWORD:-super_secret_password}@db:5432/${POSTGRES_DB:-garage_db}
       - REDIS_URL=redis://redis:6379/0
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   worker:
     build: .
@@ -29,25 +44,22 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://garage_admin:super_secret_password@db:5432/garage_db
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-garage_admin}:${POSTGRES_PASSWORD:-super_secret_password}@db:5432/${POSTGRES_DB:-garage_db}
       - REDIS_URL=redis://redis:6379/0
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     command: ["python", "-m", "arq", "worker.WorkerSettings"]
     volumes:
       - ./invoices:/app/invoices
-
-  redis:
-    image: redis:7-alpine
-    restart: always
-    ports:
-      - "6379:6379"
 
   prometheus:
     image: prom/prometheus:latest
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
     restart: always
@@ -56,7 +68,12 @@ services:
     image: grafana/grafana:latest
     ports:
       - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
     restart: always
 
 volumes:
   postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
