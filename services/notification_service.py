@@ -38,7 +38,6 @@ manager = ConnectionManager()
 
 
 async def listen_for_notifications() -> None:
-    """Фонова задача, яка постійно слухає Redis канал 'notifications'."""
     redis = Redis.from_url(settings.redis_url)
     pubsub = redis.pubsub()
     await pubsub.subscribe("notifications")
@@ -48,7 +47,7 @@ async def listen_for_notifications() -> None:
             if message["type"] == "message":
                 data = json.loads(message["data"])
                 target_user = data.get("username")
-                text = data.get("message", "Отримано нове сповіщення")
+                text = data.get("message", "A new notification has been received")
 
                 if target_user:
                     await manager.send_personal_message(text, target_user)
