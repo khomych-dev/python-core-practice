@@ -64,6 +64,13 @@ class AIService:
         if parsed_data is None:
             raise ValueError("Model refused or failed to output structured data.")
 
+        invalid_plates = ["UNKNOWN", "NONE", "N/A", ""]
+        if parsed_data.license_plate.upper() in invalid_plates or len(parsed_data.license_plate) < 3:
+            raise ValueError(
+                "Rejected: The text does not contain a valid license plate number or does not pertain to repairs. "
+                "Please provide the vehicle identification number and details of the work performed."
+            )
+
         return parsed_data  # type: ignore[no-any-return]
 
     @observe(name="Manager Agent Loop")
