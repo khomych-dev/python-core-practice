@@ -30,8 +30,8 @@ class BillingService:
                     }
                 ],
                 mode="payment",
-                success_url="http://localhost:8000/api/v1/billing/success?session_id={CHECKOUT_SESSION_ID}",
-                cancel_url="http://localhost:8000/api/v1/billing/cancel",
+                success_url=f"{settings.base_url}/api/v1/billing/success?session_id={{CHECKOUT_SESSION_ID}}",
+                cancel_url=f"{settings.base_url}/api/v1/billing/cancel",
             )
         except stripe.StripeError as e:
             raise HTTPException(status_code=500, detail=f"Stripe payment error: {str(e)}") from e
