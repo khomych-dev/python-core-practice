@@ -63,7 +63,10 @@ async def ai_rate_limiter(current_user: Annotated[dict[str, Any], Depends(get_cu
 
     except redis.RedisError as e:
         print(f"Redis error in Rate Limiter: {e}")
-        pass
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The limit check service is temporarily unavailable. Please try again later.",
+        ) from e
 
     return current_user
 
