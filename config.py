@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     stripe_api_key: str = "sk_test_dummy"
     stripe_webhook_secret: str = "whsec_dummy"
 
+    base_url: str = "http://localhost:8000"
+
     model_config = SettingsConfigDict(env_file=".env", extra="forbid")
 
 
