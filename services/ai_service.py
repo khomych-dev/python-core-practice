@@ -1,6 +1,7 @@
 import json
 from typing import Any
 
+from fastapi import HTTPException, status
 from langfuse import observe
 from langfuse.openai import AsyncOpenAI  # type: ignore
 from pydantic import BaseModel, Field
@@ -100,7 +101,14 @@ class AIService:
                 api_kwargs["tools"] = tools
                 api_kwargs["tool_choice"] = "auto"
 
-            response = await agent_client.chat.completions.create(**api_kwargs)
+            try:
+                response = await agent_client.chat.completions.create(**api_kwargs)
+            except Exception as e:
+                print(f"OpenAI API Error: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="The AI gateway is temporarily unavailable. The issue is on the provider's end (OpenAI).",
+                ) from e
 
             response_message = response.choices[0].message
 
@@ -123,4 +131,7 @@ class AIService:
                         "content": json.dumps(result, ensure_ascii=False, default=str),
                     }
                 )
-        return "The AI exceeded the character limit and was unable to generate a response."
+
+        return (
+            "The AI exceeded the step limit (maximum number of iterations) and was unable to generate a final answer."
+        )
